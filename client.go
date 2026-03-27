@@ -256,6 +256,46 @@ func (c *Client) ScanInsiderActivity(ctx context.Context, opts *ScanInsiderActiv
 	return resp, nil
 }
 
+// ListWebhooks retrieves all webhooks for the authenticated account.
+func (c *Client) ListWebhooks(ctx context.Context) (*WebhookListResponse, error) {
+	resp := &WebhookListResponse{}
+	_, err := c.doGet(ctx, "/webhooks", nil, resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// CreateWebhook creates a new webhook.
+func (c *Client) CreateWebhook(ctx context.Context, req CreateWebhookRequest) (*WebhookCreated, error) {
+	resp := &WebhookCreated{}
+	_, err := c.doPost(ctx, "/webhooks", req, resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// UpdateWebhook updates an existing webhook.
+func (c *Client) UpdateWebhook(ctx context.Context, req UpdateWebhookRequest) (*WebhookUpdateResponse, error) {
+	resp := &WebhookUpdateResponse{}
+	_, err := c.doPut(ctx, "/webhooks", req, resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// DeleteWebhook deletes a webhook.
+func (c *Client) DeleteWebhook(ctx context.Context, req DeleteWebhookRequest) (*WebhookDeleteResponse, error) {
+	resp := &WebhookDeleteResponse{}
+	_, err := c.doDeleteJSON(ctx, "/webhooks", req, resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 // addScanParams adds common scan query parameters.
 func addScanParams(params url.Values, timeframe *Timeframe, sector *string, limit *int, date *string) {
 	if timeframe != nil {
@@ -296,6 +336,40 @@ func (c *Client) doPost(ctx context.Context, path string, body interface{}, dst 
 
 	u := c.BaseURL + path
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, bytes.NewReader(jsonBody))
+	if err != nil {
+		return RateLimits{}, fmt.Errorf("tickerapi: creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	return c.do(req, dst)
+}
+
+// doPut performs an authenticated PUT request with a JSON body and decodes the response.
+func (c *Client) doPut(ctx context.Context, path string, body interface{}, dst interface{}) (RateLimits, error) {
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return RateLimits{}, fmt.Errorf("tickerapi: encoding request body: %w", err)
+	}
+
+	u := c.BaseURL + path
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewReader(jsonBody))
+	if err != nil {
+		return RateLimits{}, fmt.Errorf("tickerapi: creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	return c.do(req, dst)
+}
+
+// doDeleteJSON performs an authenticated DELETE request with a JSON body and decodes the response.
+func (c *Client) doDeleteJSON(ctx context.Context, path string, body interface{}, dst interface{}) (RateLimits, error) {
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return RateLimits{}, fmt.Errorf("tickerapi: encoding request body: %w", err)
+	}
+
+	u := c.BaseURL + path
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, bytes.NewReader(jsonBody))
 	if err != nil {
 		return RateLimits{}, fmt.Errorf("tickerapi: creating request: %w", err)
 	}

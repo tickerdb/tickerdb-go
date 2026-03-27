@@ -194,6 +194,67 @@ type ScanInsiderActivityResponse struct {
 	RateLimits RateLimits      `json:"-"`
 }
 
+// WebhookEvents is a map of event names to enabled state.
+type WebhookEvents map[string]bool
+
+// CreateWebhookRequest is the request body for creating a webhook.
+type CreateWebhookRequest struct {
+	URL    string        `json:"url"`
+	Events WebhookEvents `json:"events"`
+}
+
+// UpdateWebhookRequest is the request body for updating a webhook.
+type UpdateWebhookRequest struct {
+	ID     string        `json:"id"`
+	URL    string        `json:"url,omitempty"`
+	Events WebhookEvents `json:"events,omitempty"`
+	Active *bool         `json:"active,omitempty"`
+}
+
+// DeleteWebhookRequest is the request body for deleting a webhook.
+type DeleteWebhookRequest struct {
+	ID string `json:"id"`
+}
+
+// Webhook represents a webhook configuration.
+type Webhook struct {
+	ID        string        `json:"id"`
+	URL       string        `json:"url"`
+	Events    WebhookEvents `json:"events"`
+	Active    bool          `json:"active"`
+	CreatedAt string        `json:"created_at"`
+	UpdatedAt string        `json:"updated_at"`
+}
+
+// WebhookCreated is the response from creating a webhook.
+type WebhookCreated struct {
+	ID        string        `json:"id"`
+	URL       string        `json:"url"`
+	Secret    string        `json:"secret"`
+	Events    WebhookEvents `json:"events"`
+	Active    bool          `json:"active"`
+	CreatedAt string        `json:"created_at"`
+}
+
+// WebhookListResponse is the response from listing webhooks.
+type WebhookListResponse struct {
+	Webhooks     []Webhook `json:"webhooks"`
+	WebhookCount int       `json:"webhook_count"`
+	WebhookLimit int       `json:"webhook_limit"`
+}
+
+// WebhookUpdateResponse is the response from updating a webhook.
+type WebhookUpdateResponse struct {
+	Updated bool   `json:"updated"`
+	ID      string `json:"id"`
+}
+
+// WebhookDeleteResponse is the response from deleting a webhook.
+type WebhookDeleteResponse struct {
+	Deleted      string `json:"deleted"`
+	WebhookCount int    `json:"webhook_count"`
+}
+
 // Ptr returns a pointer to the given value. This is a convenience helper
 // for constructing option structs with optional fields.
 func Ptr[T any](v T) *T {
