@@ -158,6 +158,28 @@ type WatchlistResponse struct {
 	RateLimits RateLimits      `json:"-"`
 }
 
+// WatchlistChangesOptions configures the WatchlistChanges request.
+type WatchlistChangesOptions struct {
+	Timeframe *Timeframe
+}
+
+// WatchlistChangesResponse is the response from the WatchlistChanges endpoint.
+type WatchlistChangesResponse struct {
+	Timeframe      string                          `json:"timeframe"`
+	RunDate        *string                         `json:"run_date"`
+	Changes        map[string][]WatchlistChangeDiff `json:"changes"`
+	TickersChecked int                              `json:"tickers_checked"`
+	TickersChanged int                              `json:"tickers_changed"`
+	RateLimits     RateLimits                       `json:"-"`
+}
+
+// WatchlistChangeDiff represents a single field-level change.
+type WatchlistChangeDiff struct {
+	Field string      `json:"field"`
+	From  interface{} `json:"from"`
+	To    interface{} `json:"to"`
+}
+
 // AssetsResponse is the response from the Assets endpoint.
 type AssetsResponse struct {
 	Data       json.RawMessage `json:"data"`

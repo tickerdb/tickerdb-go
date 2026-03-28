@@ -123,6 +123,23 @@ func (c *Client) Watchlist(ctx context.Context, tickers []string, opts *Watchlis
 	return resp, nil
 }
 
+// WatchlistChanges returns field-level state changes for the user's saved
+// watchlist tickers since the last pipeline run. Available on all tiers.
+func (c *Client) WatchlistChanges(ctx context.Context, opts *WatchlistChangesOptions) (*WatchlistChangesResponse, error) {
+	params := url.Values{}
+	if opts != nil && opts.Timeframe != nil {
+		params.Set("timeframe", string(*opts.Timeframe))
+	}
+
+	resp := &WatchlistChangesResponse{}
+	rateLimits, err := c.doGet(ctx, "/watchlist/changes", params, resp)
+	if err != nil {
+		return nil, err
+	}
+	resp.RateLimits = rateLimits
+	return resp, nil
+}
+
 // Assets retrieves all available assets.
 func (c *Client) Assets(ctx context.Context) (*AssetsResponse, error) {
 	resp := &AssetsResponse{}

@@ -98,6 +98,18 @@ resp, err := client.Watchlist(ctx, []string{"AAPL", "MSFT"}, &tickerapi.Watchlis
 })
 ```
 
+### Watchlist Changes
+
+Get field-level state changes for your saved watchlist tickers since the last pipeline run.
+
+```go
+resp, err := client.WatchlistChanges(ctx, nil)
+
+resp, err := client.WatchlistChanges(ctx, &tickerapi.WatchlistChangesOptions{
+	Timeframe: tickerapi.Ptr(tickerapi.TimeframeWeekly),
+})
+```
+
 ### Assets
 
 List all available assets.
