@@ -181,6 +181,29 @@ resp, err := client.ScanInsiderActivity(ctx, &tickerapi.ScanInsiderActivityOptio
 })
 ```
 
+## Band Stability Metadata
+
+Every band field (trend direction, momentum zone, etc.) now includes a sibling `_meta` object with stability context. This tells you how long a state has been held, how often it has flipped recently, and an overall stability label.
+
+```go
+// New types for stability metadata
+// tickerapi.Stability     — "fresh" | "holding" | "established" | "volatile"
+// tickerapi.BandMeta      — full metadata (stability, periods_in_current_state, flips_recent, flips_lookback)
+// Stability metadata is available on Plus and Pro tiers only.
+
+// Example: unmarshal summary data and inspect stability
+resp, err := client.Summary(ctx, "AAPL", nil)
+// resp.Data contains _meta objects next to each band field, e.g.:
+// "direction": "uptrend",
+// "direction_meta": { "stability": "established", "periods_in_current_state": 18, ... }
+```
+
+Stability context also appears in related endpoints:
+
+- **Watchlist Changes** include stability fields for each changed band.
+- **Scanners** return `*_stability` and `*_flips_recent` columns for relevant bands.
+- **Events** include `StabilityAtEntry`, `FlipsRecentAtEntry`, and `FlipsLookback` on each entry.
+
 ## Working with Responses
 
 All response structs contain a `Data` field of type `json.RawMessage` and a `RateLimits` field. You can unmarshal `Data` into your own structs:

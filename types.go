@@ -63,6 +63,25 @@ const (
 	VolumeRatioBandExtremelyHigh VolumeRatioBand = "extremely_high"
 )
 
+// Stability represents how stable/volatile a band field is.
+type Stability string
+
+const (
+	StabilityFresh       Stability = "fresh"
+	StabilityHolding     Stability = "holding"
+	StabilityEstablished Stability = "established"
+	StabilityVolatile    Stability = "volatile"
+)
+
+// BandMeta contains stability metadata for a band field (Plus/Pro tiers).
+type BandMeta struct {
+	Timeframe             string    `json:"timeframe"`
+	PeriodsInCurrentState int       `json:"periods_in_current_state"`
+	FlipsRecent           int       `json:"flips_recent"`
+	FlipsLookback         string    `json:"flips_lookback"`
+	Stability             Stability `json:"stability"`
+}
+
 // SummaryOptions configures the Summary request.
 type SummaryOptions struct {
 	Timeframe *Timeframe `json:"timeframe,omitempty"`
@@ -99,12 +118,15 @@ type ListEventsOptions struct {
 
 // EventEntry represents a single band transition event.
 type EventEntry struct {
-	Date          string                           `json:"date"`
-	Band          string                           `json:"band"`
-	PrevBand      string                           `json:"prev_band"`
-	DurationDays  *int                             `json:"duration_days,omitempty"`
-	DurationWeeks *int                             `json:"duration_weeks,omitempty"`
-	Aftermath     map[string]*AftermathPerformance `json:"aftermath"`
+	Date               string                           `json:"date"`
+	Band               string                           `json:"band"`
+	PrevBand           string                           `json:"prev_band"`
+	StabilityAtEntry   *Stability                       `json:"stability_at_entry"`
+	FlipsRecentAtEntry *int                             `json:"flips_recent_at_entry,omitempty"`
+	FlipsLookback      *string                          `json:"flips_lookback,omitempty"`
+	DurationDays       *int                             `json:"duration_days,omitempty"`
+	DurationWeeks      *int                             `json:"duration_weeks,omitempty"`
+	Aftermath          map[string]*AftermathPerformance `json:"aftermath"`
 }
 
 // AftermathPerformance holds the performance band for an aftermath window.
@@ -232,9 +254,13 @@ type WatchlistChangesResponse struct {
 
 // WatchlistChangeDiff represents a single field-level change.
 type WatchlistChangeDiff struct {
-	Field string      `json:"field"`
-	From  interface{} `json:"from"`
-	To    interface{} `json:"to"`
+	Field                 string      `json:"field"`
+	From                  interface{} `json:"from"`
+	To                    interface{} `json:"to"`
+	Stability             *Stability  `json:"stability,omitempty"`
+	PeriodsInCurrentState *int        `json:"periods_in_current_state,omitempty"`
+	FlipsRecent           *int        `json:"flips_recent,omitempty"`
+	FlipsLookback         *string     `json:"flips_lookback,omitempty"`
 }
 
 // AssetsResponse is the response from the Assets endpoint.
