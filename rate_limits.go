@@ -1,4 +1,4 @@
-package tickerapi
+package tickerdb
 
 import (
 	"net/http"

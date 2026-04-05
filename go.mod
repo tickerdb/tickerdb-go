@@ -1,3 +1,3 @@
-module github.com/tickerapi/tickerapi-sdk-go
+module github.com/tickerdb/tickerdb-sdk-go
 
 go 1.21

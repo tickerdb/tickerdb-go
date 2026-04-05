@@ -1,8 +1,8 @@
-package tickerapi
+package tickerdb
 
 import "fmt"
 
-// APIError represents an error response from the TickerAPI.
+// APIError represents an error response from the TickerDB.
 type APIError struct {
 	// StatusCode is the HTTP status code of the response.
 	StatusCode int `json:"-"`
@@ -23,9 +23,9 @@ type APIError struct {
 // Error implements the error interface.
 func (e *APIError) Error() string {
 	if e.UpgradeURL != "" {
-		return fmt.Sprintf("tickerapi: %d %s: %s (upgrade: %s)", e.StatusCode, e.Type, e.Message, e.UpgradeURL)
+		return fmt.Sprintf("tickerdb: %d %s: %s (upgrade: %s)", e.StatusCode, e.Type, e.Message, e.UpgradeURL)
 	}
-	return fmt.Sprintf("tickerapi: %d %s: %s", e.StatusCode, e.Type, e.Message)
+	return fmt.Sprintf("tickerdb: %d %s: %s", e.StatusCode, e.Type, e.Message)
 }
 
 // IsRateLimitError reports whether the error is a 429 rate limit error.

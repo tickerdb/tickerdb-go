@@ -1,16 +1,16 @@
-# TickerAPI Go SDK
+# TickerDB Go SDK
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/tickerapi/tickerapi-sdk-go.svg)](https://pkg.go.dev/github.com/tickerapi/tickerapi-sdk-go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/tickerdb/tickerdb-sdk-go.svg)](https://pkg.go.dev/github.com/tickerdb/tickerdb-sdk-go)
 
-Official Go SDK for the [TickerAPI](https://tickerapi.ai) financial data API.
+Official Go SDK for the [TickerDB](https://tickerdb.com) financial data API.
 
-- **API Docs:** <https://tickerapi.ai/docs>
-- **Website:** <https://tickerapi.ai>
+- **API Docs:** <https://tickerdb.com/docs>
+- **Website:** <https://tickerdb.com>
 
 ## Installation
 
 ```bash
-go get github.com/tickerapi/tickerapi-sdk-go
+go get github.com/tickerdb/tickerdb-sdk-go
 ```
 
 Requires Go 1.21+ and uses only the standard library (zero external dependencies).
@@ -26,11 +26,11 @@ import (
 	"fmt"
 	"log"
 
-	tickerapi "github.com/tickerapi/tickerapi-sdk-go"
+	tickerdb "github.com/tickerdb/tickerdb-sdk-go"
 )
 
 func main() {
-	client := tickerapi.NewClient("YOUR_API_KEY")
+	client := tickerdb.NewClient("YOUR_API_KEY")
 
 	resp, err := client.Summary(context.Background(), "AAPL", nil)
 	if err != nil {
@@ -46,14 +46,14 @@ func main() {
 
 ```go
 // Custom base URL
-client := tickerapi.NewClient("YOUR_API_KEY",
-	tickerapi.WithBaseURL("https://custom-api.example.com/v1"),
+client := tickerdb.NewClient("YOUR_API_KEY",
+	tickerdb.WithBaseURL("https://custom-api.example.com/v1"),
 )
 
 // Custom HTTP client (e.g., with timeout)
 httpClient := &http.Client{Timeout: 30 * time.Second}
-client := tickerapi.NewClient("YOUR_API_KEY",
-	tickerapi.WithHTTPClient(httpClient),
+client := tickerdb.NewClient("YOUR_API_KEY",
+	tickerdb.WithHTTPClient(httpClient),
 )
 ```
 
@@ -68,9 +68,9 @@ Get a technical analysis summary for a single ticker.
 resp, err := client.Summary(ctx, "AAPL", nil)
 
 // With options
-resp, err := client.Summary(ctx, "AAPL", &tickerapi.SummaryOptions{
-	Timeframe: tickerapi.Ptr(tickerapi.TimeframeWeekly),
-	Date:      tickerapi.Ptr("2025-01-15"),
+resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
+	Timeframe: tickerdb.Ptr(tickerdb.TimeframeWeekly),
+	Date:      tickerdb.Ptr("2025-01-15"),
 })
 ```
 
@@ -79,8 +79,8 @@ resp, err := client.Summary(ctx, "AAPL", &tickerapi.SummaryOptions{
 Get a historical series for one ticker across a date range.
 
 ```go
-resp, err := client.History(ctx, "AAPL", &tickerapi.HistoryOptions{
-	Timeframe: tickerapi.Ptr(tickerapi.TimeframeDaily),
+resp, err := client.History(ctx, "AAPL", &tickerdb.HistoryOptions{
+	Timeframe: tickerdb.Ptr(tickerdb.TimeframeDaily),
 	Start:     "2025-01-01",
 	End:       "2025-03-31",
 })
@@ -93,8 +93,8 @@ Compare multiple tickers side by side.
 ```go
 resp, err := client.Compare(ctx, []string{"AAPL", "MSFT", "GOOGL"}, nil)
 
-resp, err := client.Compare(ctx, []string{"AAPL", "MSFT"}, &tickerapi.CompareOptions{
-	Timeframe: tickerapi.Ptr(tickerapi.TimeframeDaily),
+resp, err := client.Compare(ctx, []string{"AAPL", "MSFT"}, &tickerdb.CompareOptions{
+	Timeframe: tickerdb.Ptr(tickerdb.TimeframeDaily),
 })
 ```
 
@@ -105,8 +105,8 @@ Analyze a list of tickers (POST request).
 ```go
 resp, err := client.Watchlist(ctx, []string{"AAPL", "MSFT", "TSLA"}, nil)
 
-resp, err := client.Watchlist(ctx, []string{"AAPL", "MSFT"}, &tickerapi.WatchlistOptions{
-	Timeframe: tickerapi.Ptr(tickerapi.TimeframeWeekly),
+resp, err := client.Watchlist(ctx, []string{"AAPL", "MSFT"}, &tickerdb.WatchlistOptions{
+	Timeframe: tickerdb.Ptr(tickerdb.TimeframeWeekly),
 })
 ```
 
@@ -117,8 +117,8 @@ Get field-level state changes for your saved watchlist tickers since the last pi
 ```go
 resp, err := client.WatchlistChanges(ctx, nil)
 
-resp, err := client.WatchlistChanges(ctx, &tickerapi.WatchlistChangesOptions{
-	Timeframe: tickerapi.Ptr(tickerapi.TimeframeWeekly),
+resp, err := client.WatchlistChanges(ctx, &tickerdb.WatchlistChangesOptions{
+	Timeframe: tickerdb.Ptr(tickerdb.TimeframeWeekly),
 })
 ```
 
@@ -135,11 +135,11 @@ resp, err := client.Assets(ctx)
 Find oversold assets.
 
 ```go
-resp, err := client.ScanOversold(ctx, &tickerapi.ScanOversoldOptions{
-	AssetClass:  tickerapi.Ptr(tickerapi.AssetClassStock),
-	MinSeverity: tickerapi.Ptr(tickerapi.OversoldSeverityDeepOversold),
-	SortBy:      tickerapi.Ptr("severity"),
-	Limit:       tickerapi.Ptr(10),
+resp, err := client.ScanOversold(ctx, &tickerdb.ScanOversoldOptions{
+	AssetClass:  tickerdb.Ptr(tickerdb.AssetClassStock),
+	MinSeverity: tickerdb.Ptr(tickerdb.OversoldSeverityDeepOversold),
+	SortBy:      tickerdb.Ptr("severity"),
+	Limit:       tickerdb.Ptr(10),
 })
 ```
 
@@ -148,11 +148,11 @@ resp, err := client.ScanOversold(ctx, &tickerapi.ScanOversoldOptions{
 Find assets with breakout patterns.
 
 ```go
-resp, err := client.ScanBreakouts(ctx, &tickerapi.ScanBreakoutsOptions{
-	Direction:  tickerapi.Ptr(tickerapi.DirectionBullish),
-	AssetClass: tickerapi.Ptr(tickerapi.AssetClassStock),
-	SortBy:     tickerapi.Ptr("volume_ratio"),
-	Limit:      tickerapi.Ptr(20),
+resp, err := client.ScanBreakouts(ctx, &tickerdb.ScanBreakoutsOptions{
+	Direction:  tickerdb.Ptr(tickerdb.DirectionBullish),
+	AssetClass: tickerdb.Ptr(tickerdb.AssetClassStock),
+	SortBy:     tickerdb.Ptr("volume_ratio"),
+	Limit:      tickerdb.Ptr(20),
 })
 ```
 
@@ -161,10 +161,10 @@ resp, err := client.ScanBreakouts(ctx, &tickerapi.ScanBreakoutsOptions{
 Find assets with unusual trading volume.
 
 ```go
-resp, err := client.ScanUnusualVolume(ctx, &tickerapi.ScanUnusualVolumeOptions{
-	MinRatioBand: tickerapi.Ptr(tickerapi.VolumeRatioBandHigh),
-	AssetClass:   tickerapi.Ptr(tickerapi.AssetClassStock),
-	Limit:        tickerapi.Ptr(15),
+resp, err := client.ScanUnusualVolume(ctx, &tickerdb.ScanUnusualVolumeOptions{
+	MinRatioBand: tickerdb.Ptr(tickerdb.VolumeRatioBandHigh),
+	AssetClass:   tickerdb.Ptr(tickerdb.AssetClassStock),
+	Limit:        tickerdb.Ptr(15),
 })
 ```
 
@@ -173,11 +173,11 @@ resp, err := client.ScanUnusualVolume(ctx, &tickerapi.ScanUnusualVolumeOptions{
 Find undervalued or overvalued assets.
 
 ```go
-resp, err := client.ScanValuation(ctx, &tickerapi.ScanValuationOptions{
-	Direction:   tickerapi.Ptr(tickerapi.DirectionUndervalued),
-	MinSeverity: tickerapi.Ptr(tickerapi.ValuationSeverityDeepValue),
-	Sector:      tickerapi.Ptr("Technology"),
-	Limit:       tickerapi.Ptr(10),
+resp, err := client.ScanValuation(ctx, &tickerdb.ScanValuationOptions{
+	Direction:   tickerdb.Ptr(tickerdb.DirectionUndervalued),
+	MinSeverity: tickerdb.Ptr(tickerdb.ValuationSeverityDeepValue),
+	Sector:      tickerdb.Ptr("Technology"),
+	Limit:       tickerdb.Ptr(10),
 })
 ```
 
@@ -186,10 +186,10 @@ resp, err := client.ScanValuation(ctx, &tickerapi.ScanValuationOptions{
 Find assets with notable insider trading.
 
 ```go
-resp, err := client.ScanInsiderActivity(ctx, &tickerapi.ScanInsiderActivityOptions{
-	Direction: tickerapi.Ptr(tickerapi.DirectionBuying),
-	SortBy:    tickerapi.Ptr("zone_severity"),
-	Limit:     tickerapi.Ptr(10),
+resp, err := client.ScanInsiderActivity(ctx, &tickerdb.ScanInsiderActivityOptions{
+	Direction: tickerdb.Ptr(tickerdb.DirectionBuying),
+	SortBy:    tickerdb.Ptr("zone_severity"),
+	Limit:     tickerdb.Ptr(10),
 })
 ```
 
@@ -199,8 +199,8 @@ Every band field (trend direction, momentum zone, etc.) now includes a sibling `
 
 ```go
 // New types for stability metadata
-// tickerapi.Stability     — "fresh" | "holding" | "established" | "volatile"
-// tickerapi.BandMeta      — full metadata (stability, periods_in_current_state, flips_recent, flips_lookback)
+// tickerdb.Stability     — "fresh" | "holding" | "established" | "volatile"
+// tickerdb.BandMeta      — full metadata (stability, periods_in_current_state, flips_recent, flips_lookback)
 // Stability metadata is available on Plus and Pro tiers only.
 
 // Example: unmarshal summary data and inspect stability
@@ -232,14 +232,14 @@ json.Unmarshal(resp.Data, &result)
 
 ## Error Handling
 
-All API errors are returned as `*tickerapi.APIError`, which implements the `error` interface.
+All API errors are returned as `*tickerdb.APIError`, which implements the `error` interface.
 
 ```go
 import "errors"
 
 resp, err := client.Summary(ctx, "INVALID", nil)
 if err != nil {
-	var apiErr *tickerapi.APIError
+	var apiErr *tickerdb.APIError
 	if errors.As(err, &apiErr) {
 		fmt.Printf("Status: %d\n", apiErr.StatusCode)
 		fmt.Printf("Type: %s\n", apiErr.Type)

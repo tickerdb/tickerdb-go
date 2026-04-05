@@ -1,7 +1,7 @@
-// Package tickerapi provides a Go client for the TickerAPI financial data API.
+// Package tickerdb provides a Go client for the TickerDB financial data API.
 //
-// For full API documentation, see https://tickerapi.ai/docs
-package tickerapi
+// For full API documentation, see https://tickerdb.ai/docs
+package tickerdb
 
 import (
 	"bytes"
@@ -16,16 +16,16 @@ import (
 )
 
 const (
-	defaultBaseURL = "https://api.tickerapi.ai/v1"
-	userAgent      = "tickerapi-sdk-go"
+	defaultBaseURL = "https://api.tickerdb.ai/v1"
+	userAgent      = "tickerdb-sdk-go"
 )
 
-// Client is the TickerAPI client. Create one with NewClient.
+// Client is the TickerDB client. Create one with NewClient.
 type Client struct {
 	// APIKey is the bearer token used for authentication.
 	APIKey string
 
-	// BaseURL is the base URL of the API. Defaults to https://api.tickerapi.ai/v1.
+	// BaseURL is the base URL of the API. Defaults to https://api.tickerdb.ai/v1.
 	BaseURL string
 
 	// HTTPClient is the HTTP client used for requests. Defaults to http.DefaultClient.
@@ -49,7 +49,7 @@ func WithHTTPClient(httpClient *http.Client) Option {
 	}
 }
 
-// NewClient creates a new TickerAPI client with the given API key and options.
+// NewClient creates a new TickerDB client with the given API key and options.
 func NewClient(apiKey string, opts ...Option) *Client {
 	c := &Client{
 		APIKey:     apiKey,
@@ -86,7 +86,7 @@ func (c *Client) Summary(ctx context.Context, ticker string, opts *SummaryOption
 // History retrieves a historical series for a single ticker across a date range.
 func (c *Client) History(ctx context.Context, ticker string, opts *HistoryOptions) (*HistoryResponse, error) {
 	if opts == nil || opts.Start == "" || opts.End == "" {
-		return nil, fmt.Errorf("tickerapi: history requires start and end dates")
+		return nil, fmt.Errorf("tickerdb: history requires start and end dates")
 	}
 
 	params := url.Values{}
@@ -413,7 +413,7 @@ func (c *Client) doGet(ctx context.Context, path string, params url.Values, dst 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerapi: creating request: %w", err)
+		return RateLimits{}, fmt.Errorf("tickerdb: creating request: %w", err)
 	}
 
 	return c.do(req, dst)
@@ -423,13 +423,13 @@ func (c *Client) doGet(ctx context.Context, path string, params url.Values, dst 
 func (c *Client) doPost(ctx context.Context, path string, body interface{}, dst interface{}) (RateLimits, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerapi: encoding request body: %w", err)
+		return RateLimits{}, fmt.Errorf("tickerdb: encoding request body: %w", err)
 	}
 
 	u := c.BaseURL + path
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, bytes.NewReader(jsonBody))
 	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerapi: creating request: %w", err)
+		return RateLimits{}, fmt.Errorf("tickerdb: creating request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -440,13 +440,13 @@ func (c *Client) doPost(ctx context.Context, path string, body interface{}, dst 
 func (c *Client) doPut(ctx context.Context, path string, body interface{}, dst interface{}) (RateLimits, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerapi: encoding request body: %w", err)
+		return RateLimits{}, fmt.Errorf("tickerdb: encoding request body: %w", err)
 	}
 
 	u := c.BaseURL + path
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewReader(jsonBody))
 	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerapi: creating request: %w", err)
+		return RateLimits{}, fmt.Errorf("tickerdb: creating request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -457,13 +457,13 @@ func (c *Client) doPut(ctx context.Context, path string, body interface{}, dst i
 func (c *Client) doDeleteJSON(ctx context.Context, path string, body interface{}, dst interface{}) (RateLimits, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerapi: encoding request body: %w", err)
+		return RateLimits{}, fmt.Errorf("tickerdb: encoding request body: %w", err)
 	}
 
 	u := c.BaseURL + path
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, bytes.NewReader(jsonBody))
 	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerapi: creating request: %w", err)
+		return RateLimits{}, fmt.Errorf("tickerdb: creating request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -478,7 +478,7 @@ func (c *Client) do(req *http.Request, dst interface{}) (RateLimits, error) {
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerapi: sending request: %w", err)
+		return RateLimits{}, fmt.Errorf("tickerdb: sending request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -486,7 +486,7 @@ func (c *Client) do(req *http.Request, dst interface{}) (RateLimits, error) {
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return rateLimits, fmt.Errorf("tickerapi: reading response body: %w", err)
+		return rateLimits, fmt.Errorf("tickerdb: reading response body: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
@@ -505,7 +505,7 @@ func (c *Client) do(req *http.Request, dst interface{}) (RateLimits, error) {
 
 	if dst != nil {
 		if err := json.Unmarshal(bodyBytes, dst); err != nil {
-			return rateLimits, fmt.Errorf("tickerapi: decoding response: %w", err)
+			return rateLimits, fmt.Errorf("tickerdb: decoding response: %w", err)
 		}
 	}
 
