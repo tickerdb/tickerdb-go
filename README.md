@@ -74,6 +74,18 @@ resp, err := client.Summary(ctx, "AAPL", &tickerapi.SummaryOptions{
 })
 ```
 
+### History
+
+Get a historical series for one ticker across a date range.
+
+```go
+resp, err := client.History(ctx, "AAPL", &tickerapi.HistoryOptions{
+	Timeframe: tickerapi.Ptr(tickerapi.TimeframeDaily),
+	Start:     "2025-01-01",
+	End:       "2025-03-31",
+})
+```
+
 ### Compare
 
 Compare multiple tickers side by side.

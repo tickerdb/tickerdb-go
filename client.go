@@ -83,6 +83,28 @@ func (c *Client) Summary(ctx context.Context, ticker string, opts *SummaryOption
 	return resp, nil
 }
 
+// History retrieves a historical series for a single ticker across a date range.
+func (c *Client) History(ctx context.Context, ticker string, opts *HistoryOptions) (*HistoryResponse, error) {
+	if opts == nil || opts.Start == "" || opts.End == "" {
+		return nil, fmt.Errorf("tickerapi: history requires start and end dates")
+	}
+
+	params := url.Values{}
+	if opts.Timeframe != nil {
+		params.Set("timeframe", string(*opts.Timeframe))
+	}
+	params.Set("start", opts.Start)
+	params.Set("end", opts.End)
+
+	resp := &HistoryResponse{}
+	rateLimits, err := c.doGet(ctx, fmt.Sprintf("/history/%s", url.PathEscape(ticker)), params, resp)
+	if err != nil {
+		return nil, err
+	}
+	resp.RateLimits = rateLimits
+	return resp, nil
+}
+
 // Compare retrieves a comparison of multiple tickers.
 func (c *Client) Compare(ctx context.Context, tickers []string, opts *CompareOptions) (*CompareResponse, error) {
 	params := url.Values{}

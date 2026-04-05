@@ -88,6 +88,13 @@ type SummaryOptions struct {
 	Date      *string    `json:"date,omitempty"`
 }
 
+// HistoryOptions configures the History request.
+type HistoryOptions struct {
+	Timeframe *Timeframe `json:"timeframe,omitempty"`
+	Start     string     `json:"start"`
+	End       string     `json:"end"`
+}
+
 // CompareOptions configures the Compare request.
 type CompareOptions struct {
 	Timeframe *Timeframe `json:"timeframe,omitempty"`
@@ -217,6 +224,25 @@ type WatchlistRequest struct {
 type SummaryResponse struct {
 	Data       json.RawMessage `json:"data"`
 	RateLimits RateLimits      `json:"-"`
+}
+
+// HistoryRow is one row returned by the History endpoint.
+type HistoryRow struct {
+	Date          string          `json:"date"`
+	SchemaVersion string          `json:"schema_version"`
+	Summary       json.RawMessage `json:"summary"`
+	Levels        json.RawMessage `json:"levels"`
+}
+
+// HistoryResponse is the response from the History endpoint.
+type HistoryResponse struct {
+	Ticker     string       `json:"ticker"`
+	Timeframe  Timeframe    `json:"timeframe"`
+	Start      string       `json:"start"`
+	End        string       `json:"end"`
+	RowCount   int          `json:"row_count"`
+	Rows       []HistoryRow `json:"rows"`
+	RateLimits RateLimits   `json:"-"`
 }
 
 // CompareResponse is the response from the Compare endpoint.
