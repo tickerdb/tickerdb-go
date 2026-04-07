@@ -17,7 +17,7 @@ import (
 
 const (
 	defaultBaseURL = "https://api.tickerdb.ai/v1"
-	userAgent      = "tickerdb-sdk-go"
+	userAgent      = "tickerdb-go"
 )
 
 // Client is the TickerDB client. Create one with NewClient.
@@ -63,6 +63,12 @@ func NewClient(apiKey string, opts ...Option) *Client {
 }
 
 // Summary retrieves a technical analysis summary for a single ticker.
+//
+// Supports 4 modes depending on which options are provided:
+//   - Snapshot (default): Current categorical state.
+//   - Historical snapshot: Set Date for a point-in-time snapshot.
+//   - Historical series: Set Start/End for a date range of snapshots.
+//   - Events: Set Field (and optionally Band) for band transition history.
 func (c *Client) Summary(ctx context.Context, ticker string, opts *SummaryOptions) (*SummaryResponse, error) {
 	params := url.Values{}
 	if opts != nil {
@@ -72,10 +78,40 @@ func (c *Client) Summary(ctx context.Context, ticker string, opts *SummaryOption
 		if opts.Date != nil {
 			params.Set("date", *opts.Date)
 		}
+		if opts.Start != nil {
+			params.Set("start", *opts.Start)
+		}
+		if opts.End != nil {
+			params.Set("end", *opts.End)
+		}
+		if opts.Field != nil {
+			params.Set("field", *opts.Field)
+		}
+		if opts.Band != nil {
+			params.Set("band", *opts.Band)
+		}
+		if opts.Limit != nil {
+			params.Set("limit", strconv.Itoa(*opts.Limit))
+		}
+		if opts.Before != nil {
+			params.Set("before", *opts.Before)
+		}
+		if opts.After != nil {
+			params.Set("after", *opts.After)
+		}
+		if opts.ContextTicker != nil {
+			params.Set("context_ticker", *opts.ContextTicker)
+		}
+		if opts.ContextField != nil {
+			params.Set("context_field", *opts.ContextField)
+		}
+		if opts.ContextBand != nil {
+			params.Set("context_band", *opts.ContextBand)
+		}
 	}
 
 	resp := &SummaryResponse{}
-	rateLimits, err := c.doGet(ctx, fmt.Sprintf("/summary/%s", url.PathEscape(ticker)), params, resp)
+	rateLimits, err := c.doGet(ctx, "/summary/"+url.PathEscape(ticker), params, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -83,43 +119,46 @@ func (c *Client) Summary(ctx context.Context, ticker string, opts *SummaryOption
 	return resp, nil
 }
 
-// History retrieves a historical series for a single ticker across a date range.
-func (c *Client) History(ctx context.Context, ticker string, opts *HistoryOptions) (*HistoryResponse, error) {
-	if opts == nil || opts.Start == "" || opts.End == "" {
-		return nil, fmt.Errorf("tickerdb: history requires start and end dates")
-	}
-
+// Search finds assets matching filter criteria.
+func (c *Client) Search(ctx context.Context, opts *SearchOptions) (*SearchResponse, error) {
 	params := url.Values{}
-	if opts.Timeframe != nil {
-		params.Set("timeframe", string(*opts.Timeframe))
-	}
-	params.Set("start", opts.Start)
-	params.Set("end", opts.End)
-
-	resp := &HistoryResponse{}
-	rateLimits, err := c.doGet(ctx, fmt.Sprintf("/history/%s", url.PathEscape(ticker)), params, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// Compare retrieves a comparison of multiple tickers.
-func (c *Client) Compare(ctx context.Context, tickers []string, opts *CompareOptions) (*CompareResponse, error) {
-	params := url.Values{}
-	params.Set("tickers", strings.Join(tickers, ","))
 	if opts != nil {
+		if opts.Filters != "" {
+			params.Set("filters", opts.Filters)
+		}
 		if opts.Timeframe != nil {
 			params.Set("timeframe", string(*opts.Timeframe))
 		}
-		if opts.Date != nil {
-			params.Set("date", *opts.Date)
+		if opts.Limit != nil {
+			params.Set("limit", strconv.Itoa(*opts.Limit))
+		}
+		if opts.Offset != nil {
+			params.Set("offset", strconv.Itoa(*opts.Offset))
+		}
+		if opts.Fields != "" {
+			params.Set("fields", opts.Fields)
+		}
+		if opts.SortBy != nil {
+			params.Set("sort_by", *opts.SortBy)
+		}
+		if opts.SortDirection != nil {
+			params.Set("sort_direction", *opts.SortDirection)
 		}
 	}
 
-	resp := &CompareResponse{}
-	rateLimits, err := c.doGet(ctx, "/compare", params, resp)
+	resp := &SearchResponse{}
+	rateLimits, err := c.doGet(ctx, "/search", params, resp)
+	if err != nil {
+		return nil, err
+	}
+	resp.RateLimits = rateLimits
+	return resp, nil
+}
+
+// Schema retrieves the schema of available fields and their valid band values.
+func (c *Client) Schema(ctx context.Context) (*SchemaResponse, error) {
+	resp := &SchemaResponse{}
+	rateLimits, err := c.doGet(ctx, "/schema/fields", nil, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -155,192 +194,6 @@ func (c *Client) WatchlistChanges(ctx context.Context, opts *WatchlistChangesOpt
 
 	resp := &WatchlistChangesResponse{}
 	rateLimits, err := c.doGet(ctx, "/watchlist/changes", params, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// Assets retrieves all available assets.
-func (c *Client) Assets(ctx context.Context) (*AssetsResponse, error) {
-	resp := &AssetsResponse{}
-	rateLimits, err := c.doGet(ctx, "/assets", nil, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// ListSectors retrieves all valid sector values with asset counts.
-func (c *Client) ListSectors(ctx context.Context) (*SectorsResponse, error) {
-	resp := &SectorsResponse{}
-	rateLimits, err := c.doGet(ctx, "/list/sectors", nil, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// ListEvents searches for historical band transition events for a ticker.
-// ticker and field are required; opts may be nil for defaults.
-func (c *Client) ListEvents(ctx context.Context, ticker, field string, opts *ListEventsOptions) (*ListEventsResponse, error) {
-	params := url.Values{}
-	params.Set("ticker", ticker)
-	params.Set("field", field)
-	if opts != nil {
-		if opts.Timeframe != nil {
-			params.Set("timeframe", string(*opts.Timeframe))
-		}
-		if opts.Band != nil {
-			params.Set("band", *opts.Band)
-		}
-		if opts.Limit != nil {
-			params.Set("limit", strconv.Itoa(*opts.Limit))
-		}
-		if opts.Before != nil {
-			params.Set("before", *opts.Before)
-		}
-		if opts.After != nil {
-			params.Set("after", *opts.After)
-		}
-		if opts.ContextTicker != nil {
-			params.Set("context_ticker", *opts.ContextTicker)
-		}
-		if opts.ContextField != nil {
-			params.Set("context_field", *opts.ContextField)
-		}
-		if opts.ContextBand != nil {
-			params.Set("context_band", *opts.ContextBand)
-		}
-	}
-
-	resp := &ListEventsResponse{}
-	rateLimits, err := c.doGet(ctx, "/events", params, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// ScanOversold retrieves oversold assets matching the given criteria.
-func (c *Client) ScanOversold(ctx context.Context, opts *ScanOversoldOptions) (*ScanOversoldResponse, error) {
-	params := url.Values{}
-	if opts != nil {
-		addScanParams(params, opts.Timeframe, opts.Sector, opts.Limit, opts.Date)
-		if opts.AssetClass != nil {
-			params.Set("asset_class", string(*opts.AssetClass))
-		}
-		if opts.MinSeverity != nil {
-			params.Set("min_severity", string(*opts.MinSeverity))
-		}
-		if opts.SortBy != nil {
-			params.Set("sort_by", *opts.SortBy)
-		}
-	}
-
-	resp := &ScanOversoldResponse{}
-	rateLimits, err := c.doGet(ctx, "/scan/oversold", params, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// ScanBreakouts retrieves assets with breakout patterns.
-func (c *Client) ScanBreakouts(ctx context.Context, opts *ScanBreakoutsOptions) (*ScanBreakoutsResponse, error) {
-	params := url.Values{}
-	if opts != nil {
-		addScanParams(params, opts.Timeframe, opts.Sector, opts.Limit, opts.Date)
-		if opts.AssetClass != nil {
-			params.Set("asset_class", string(*opts.AssetClass))
-		}
-		if opts.Direction != nil {
-			params.Set("direction", string(*opts.Direction))
-		}
-		if opts.SortBy != nil {
-			params.Set("sort_by", *opts.SortBy)
-		}
-	}
-
-	resp := &ScanBreakoutsResponse{}
-	rateLimits, err := c.doGet(ctx, "/scan/breakouts", params, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// ScanUnusualVolume retrieves assets with unusual volume.
-func (c *Client) ScanUnusualVolume(ctx context.Context, opts *ScanUnusualVolumeOptions) (*ScanUnusualVolumeResponse, error) {
-	params := url.Values{}
-	if opts != nil {
-		addScanParams(params, opts.Timeframe, opts.Sector, opts.Limit, opts.Date)
-		if opts.AssetClass != nil {
-			params.Set("asset_class", string(*opts.AssetClass))
-		}
-		if opts.MinRatioBand != nil {
-			params.Set("min_ratio_band", string(*opts.MinRatioBand))
-		}
-		if opts.SortBy != nil {
-			params.Set("sort_by", *opts.SortBy)
-		}
-	}
-
-	resp := &ScanUnusualVolumeResponse{}
-	rateLimits, err := c.doGet(ctx, "/scan/unusual-volume", params, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// ScanValuation retrieves assets based on valuation metrics.
-func (c *Client) ScanValuation(ctx context.Context, opts *ScanValuationOptions) (*ScanValuationResponse, error) {
-	params := url.Values{}
-	if opts != nil {
-		addScanParams(params, opts.Timeframe, opts.Sector, opts.Limit, opts.Date)
-		if opts.Direction != nil {
-			params.Set("direction", string(*opts.Direction))
-		}
-		if opts.MinSeverity != nil {
-			params.Set("min_severity", string(*opts.MinSeverity))
-		}
-		if opts.SortBy != nil {
-			params.Set("sort_by", *opts.SortBy)
-		}
-	}
-
-	resp := &ScanValuationResponse{}
-	rateLimits, err := c.doGet(ctx, "/scan/valuation", params, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// ScanInsiderActivity retrieves assets with notable insider trading activity.
-func (c *Client) ScanInsiderActivity(ctx context.Context, opts *ScanInsiderActivityOptions) (*ScanInsiderActivityResponse, error) {
-	params := url.Values{}
-	if opts != nil {
-		addScanParams(params, opts.Timeframe, opts.Sector, opts.Limit, opts.Date)
-		if opts.Direction != nil {
-			params.Set("direction", string(*opts.Direction))
-		}
-		if opts.SortBy != nil {
-			params.Set("sort_by", *opts.SortBy)
-		}
-	}
-
-	resp := &ScanInsiderActivityResponse{}
-	rateLimits, err := c.doGet(ctx, "/scan/insider-activity", params, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -388,20 +241,143 @@ func (c *Client) DeleteWebhook(ctx context.Context, req DeleteWebhookRequest) (*
 	return resp, nil
 }
 
-// addScanParams adds common scan query parameters.
-func addScanParams(params url.Values, timeframe *Timeframe, sector *string, limit *int, date *string) {
-	if timeframe != nil {
-		params.Set("timeframe", string(*timeframe))
+// ──────────────────────────────────────────────────────────────────────────────
+// Fluent search query builder
+// ──────────────────────────────────────────────────────────────────────────────
+
+// SearchBuilder provides a fluent interface for constructing search queries.
+//
+// Usage:
+//
+//	results, err := client.Query().
+//	    Eq("momentum_rsi_zone", "oversold").
+//	    Eq("sector", "Technology").
+//	    Select("ticker", "sector", "momentum_rsi_zone").
+//	    Sort("extremes_condition_percentile", "asc").
+//	    Limit(10).
+//	    Execute(ctx)
+type SearchBuilder struct {
+	client         *Client
+	filters        []searchFilter
+	fields         []string
+	sortBy         *string
+	sortDirection  *string
+	timeframe      *Timeframe
+	limit          *int
+	offset         *int
+}
+
+type searchFilter struct {
+	Field string      `json:"field"`
+	Op    string      `json:"op"`
+	Value interface{} `json:"value"`
+}
+
+// Query creates a new fluent SearchBuilder for constructing search queries.
+func (c *Client) Query() *SearchBuilder {
+	return &SearchBuilder{client: c}
+}
+
+// Eq adds an equality filter.
+func (b *SearchBuilder) Eq(field string, value interface{}) *SearchBuilder {
+	b.filters = append(b.filters, searchFilter{Field: field, Op: "eq", Value: value})
+	return b
+}
+
+// Neq adds a not-equal filter.
+func (b *SearchBuilder) Neq(field string, value interface{}) *SearchBuilder {
+	b.filters = append(b.filters, searchFilter{Field: field, Op: "neq", Value: value})
+	return b
+}
+
+// In adds an "in" filter for matching any of the given values.
+func (b *SearchBuilder) In(field string, values ...interface{}) *SearchBuilder {
+	b.filters = append(b.filters, searchFilter{Field: field, Op: "in", Value: values})
+	return b
+}
+
+// Gt adds a greater-than filter.
+func (b *SearchBuilder) Gt(field string, value interface{}) *SearchBuilder {
+	b.filters = append(b.filters, searchFilter{Field: field, Op: "gt", Value: value})
+	return b
+}
+
+// Gte adds a greater-than-or-equal filter.
+func (b *SearchBuilder) Gte(field string, value interface{}) *SearchBuilder {
+	b.filters = append(b.filters, searchFilter{Field: field, Op: "gte", Value: value})
+	return b
+}
+
+// Lt adds a less-than filter.
+func (b *SearchBuilder) Lt(field string, value interface{}) *SearchBuilder {
+	b.filters = append(b.filters, searchFilter{Field: field, Op: "lt", Value: value})
+	return b
+}
+
+// Lte adds a less-than-or-equal filter.
+func (b *SearchBuilder) Lte(field string, value interface{}) *SearchBuilder {
+	b.filters = append(b.filters, searchFilter{Field: field, Op: "lte", Value: value})
+	return b
+}
+
+// Select specifies which fields to return in the results.
+func (b *SearchBuilder) Select(fields ...string) *SearchBuilder {
+	b.fields = fields
+	return b
+}
+
+// Sort sets the sort column and direction ("asc" or "desc").
+func (b *SearchBuilder) Sort(field string, direction string) *SearchBuilder {
+	b.sortBy = &field
+	b.sortDirection = &direction
+	return b
+}
+
+// Limit sets the maximum number of results.
+func (b *SearchBuilder) Limit(n int) *SearchBuilder {
+	b.limit = &n
+	return b
+}
+
+// Offset sets the pagination offset.
+func (b *SearchBuilder) Offset(n int) *SearchBuilder {
+	b.offset = &n
+	return b
+}
+
+// WithTimeframe sets the analysis timeframe.
+func (b *SearchBuilder) WithTimeframe(tf Timeframe) *SearchBuilder {
+	b.timeframe = &tf
+	return b
+}
+
+// Execute runs the built query against the search endpoint.
+func (b *SearchBuilder) Execute(ctx context.Context) (*SearchResponse, error) {
+	opts := &SearchOptions{}
+
+	if len(b.filters) > 0 {
+		filtersJSON, err := json.Marshal(b.filters)
+		if err != nil {
+			return nil, fmt.Errorf("tickerdb: encoding filters: %w", err)
+		}
+		opts.Filters = string(filtersJSON)
 	}
-	if sector != nil {
-		params.Set("sector", *sector)
+
+	if len(b.fields) > 0 {
+		fieldsJSON, err := json.Marshal(b.fields)
+		if err != nil {
+			return nil, fmt.Errorf("tickerdb: encoding fields: %w", err)
+		}
+		opts.Fields = string(fieldsJSON)
 	}
-	if limit != nil {
-		params.Set("limit", strconv.Itoa(*limit))
-	}
-	if date != nil {
-		params.Set("date", *date)
-	}
+
+	opts.SortBy = b.sortBy
+	opts.SortDirection = b.sortDirection
+	opts.Timeframe = b.timeframe
+	opts.Limit = b.limit
+	opts.Offset = b.offset
+
+	return b.client.Search(ctx, opts)
 }
 
 // doGet performs an authenticated GET request and decodes the response.

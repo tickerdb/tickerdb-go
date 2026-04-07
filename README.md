@@ -1,6 +1,6 @@
 # TickerDB Go SDK
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/tickerdb/tickerdb-sdk-go.svg)](https://pkg.go.dev/github.com/tickerdb/tickerdb-sdk-go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/tickerdb/tickerdb-go.svg)](https://pkg.go.dev/github.com/tickerdb/tickerdb-go)
 
 Official Go SDK for the [TickerDB](https://tickerdb.com) financial data API.
 
@@ -10,7 +10,7 @@ Official Go SDK for the [TickerDB](https://tickerdb.com) financial data API.
 ## Installation
 
 ```bash
-go get github.com/tickerdb/tickerdb-sdk-go
+go get github.com/tickerdb/tickerdb-go
 ```
 
 Requires Go 1.21+ and uses only the standard library (zero external dependencies).
@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"log"
 
-	tickerdb "github.com/tickerdb/tickerdb-sdk-go"
+	tickerdb "github.com/tickerdb/tickerdb-go"
 )
 
 func main() {
@@ -74,27 +74,25 @@ resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
 })
 ```
 
-### History
+### Summary with Date Range
 
-Get a historical series for one ticker across a date range.
+Get a summary series for one ticker across a date range by passing `Start` and `End`.
 
 ```go
-resp, err := client.History(ctx, "AAPL", &tickerdb.HistoryOptions{
-	Timeframe: tickerdb.Ptr(tickerdb.TimeframeDaily),
-	Start:     "2025-01-01",
-	End:       "2025-03-31",
+resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
+	Start: tickerdb.Ptr("2025-01-01"),
+	End:   tickerdb.Ptr("2025-03-31"),
 })
 ```
 
-### Compare
+### Summary with Events Filter
 
-Compare multiple tickers side by side.
+Query event occurrences for a specific band field.
 
 ```go
-resp, err := client.Compare(ctx, []string{"AAPL", "MSFT", "GOOGL"}, nil)
-
-resp, err := client.Compare(ctx, []string{"AAPL", "MSFT"}, &tickerdb.CompareOptions{
-	Timeframe: tickerdb.Ptr(tickerdb.TimeframeDaily),
+resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
+	Field: tickerdb.Ptr("rsi_zone"),
+	Band:  tickerdb.Ptr("deep_oversold"),
 })
 ```
 
@@ -122,77 +120,6 @@ resp, err := client.WatchlistChanges(ctx, &tickerdb.WatchlistChangesOptions{
 })
 ```
 
-### Assets
-
-List all available assets.
-
-```go
-resp, err := client.Assets(ctx)
-```
-
-### Scan: Oversold
-
-Find oversold assets.
-
-```go
-resp, err := client.ScanOversold(ctx, &tickerdb.ScanOversoldOptions{
-	AssetClass:  tickerdb.Ptr(tickerdb.AssetClassStock),
-	MinSeverity: tickerdb.Ptr(tickerdb.OversoldSeverityDeepOversold),
-	SortBy:      tickerdb.Ptr("severity"),
-	Limit:       tickerdb.Ptr(10),
-})
-```
-
-### Scan: Breakouts
-
-Find assets with breakout patterns.
-
-```go
-resp, err := client.ScanBreakouts(ctx, &tickerdb.ScanBreakoutsOptions{
-	Direction:  tickerdb.Ptr(tickerdb.DirectionBullish),
-	AssetClass: tickerdb.Ptr(tickerdb.AssetClassStock),
-	SortBy:     tickerdb.Ptr("volume_ratio"),
-	Limit:      tickerdb.Ptr(20),
-})
-```
-
-### Scan: Unusual Volume
-
-Find assets with unusual trading volume.
-
-```go
-resp, err := client.ScanUnusualVolume(ctx, &tickerdb.ScanUnusualVolumeOptions{
-	MinRatioBand: tickerdb.Ptr(tickerdb.VolumeRatioBandHigh),
-	AssetClass:   tickerdb.Ptr(tickerdb.AssetClassStock),
-	Limit:        tickerdb.Ptr(15),
-})
-```
-
-### Scan: Valuation
-
-Find undervalued or overvalued assets.
-
-```go
-resp, err := client.ScanValuation(ctx, &tickerdb.ScanValuationOptions{
-	Direction:   tickerdb.Ptr(tickerdb.DirectionUndervalued),
-	MinSeverity: tickerdb.Ptr(tickerdb.ValuationSeverityDeepValue),
-	Sector:      tickerdb.Ptr("Technology"),
-	Limit:       tickerdb.Ptr(10),
-})
-```
-
-### Scan: Insider Activity
-
-Find assets with notable insider trading.
-
-```go
-resp, err := client.ScanInsiderActivity(ctx, &tickerdb.ScanInsiderActivityOptions{
-	Direction: tickerdb.Ptr(tickerdb.DirectionBuying),
-	SortBy:    tickerdb.Ptr("zone_severity"),
-	Limit:     tickerdb.Ptr(10),
-})
-```
-
 ## Band Stability Metadata
 
 Every band field (trend direction, momentum zone, etc.) now includes a sibling `_meta` object with stability context. This tells you how long a state has been held, how often it has flipped recently, and an overall stability label.
@@ -210,11 +137,21 @@ resp, err := client.Summary(ctx, "AAPL", nil)
 // "direction_meta": { "stability": "established", "periods_in_current_state": 18, ... }
 ```
 
-Stability context also appears in related endpoints:
+Stability context also appears in **Watchlist Changes**, which include stability fields for each changed band.
 
-- **Watchlist Changes** include stability fields for each changed band.
-- **Scanners** return `*_stability` and `*_flips_recent` columns for relevant bands.
-- **Events** include `StabilityAtEntry`, `FlipsRecentAtEntry`, and `FlipsLookback` on each entry.
+### Query Builder
+
+The SDK includes a fluent query builder for searching assets by categorical state. Chain methods in order: Select, filters, Sort, Limit.
+
+```go
+results, err := client.Query().
+    Select("ticker", "sector", "momentum_rsi_zone").
+    Eq("momentum_rsi_zone", "oversold").
+    Eq("sector", "Technology").
+    Sort("extremes_condition_percentile", "asc").
+    Limit(10).
+    Execute(ctx)
+```
 
 ## Working with Responses
 
