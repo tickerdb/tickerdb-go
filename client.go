@@ -1,6 +1,6 @@
 // Package tickerdb provides a Go client for the TickerDB financial data API.
 //
-// For full API documentation, see https://tickerdb.ai/docs
+// For full API documentation, see https://tickerdb.com/docs
 package tickerdb
 
 import (
@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	defaultBaseURL = "https://api.tickerdb.ai/v1"
+	defaultBaseURL = "https://api.tickerdb.com/v1"
 	userAgent      = "tickerdb-go"
 )
 
@@ -25,7 +25,7 @@ type Client struct {
 	// APIKey is the bearer token used for authentication.
 	APIKey string
 
-	// BaseURL is the base URL of the API. Defaults to https://api.tickerdb.ai/v1.
+	// BaseURL is the base URL of the API. Defaults to https://api.tickerdb.com/v1.
 	BaseURL string
 
 	// HTTPClient is the HTTP client used for requests. Defaults to http.DefaultClient.
