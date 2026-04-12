@@ -166,17 +166,44 @@ func (c *Client) Schema(ctx context.Context) (*SchemaResponse, error) {
 	return resp, nil
 }
 
-// Watchlist retrieves analysis for a list of tickers.
-func (c *Client) Watchlist(ctx context.Context, tickers []string, opts *WatchlistOptions) (*WatchlistResponse, error) {
-	body := WatchlistRequest{
-		Tickers: tickers,
+// Watchlist retrieves the saved watchlist snapshot for the authenticated account.
+func (c *Client) Watchlist(ctx context.Context, opts *WatchlistOptions) (*WatchlistResponse, error) {
+	params := url.Values{}
+	if opts != nil && opts.Date != nil {
+		params.Set("date", *opts.Date)
 	}
-	if opts != nil {
-		body.Timeframe = opts.Timeframe
+	resp := &WatchlistResponse{}
+	rateLimits, err := c.doGet(ctx, "/watchlist", params, resp)
+	if err != nil {
+		return nil, err
+	}
+	resp.RateLimits = rateLimits
+	return resp, nil
+}
+
+// AddToWatchlist adds tickers to the saved watchlist.
+func (c *Client) AddToWatchlist(ctx context.Context, tickers []string) (*AddToWatchlistResponse, error) {
+	body := WatchlistMutationRequest{
+		Tickers: normalizeTickers(tickers),
 	}
 
-	resp := &WatchlistResponse{}
+	resp := &AddToWatchlistResponse{}
 	rateLimits, err := c.doPost(ctx, "/watchlist", body, resp)
+	if err != nil {
+		return nil, err
+	}
+	resp.RateLimits = rateLimits
+	return resp, nil
+}
+
+// RemoveFromWatchlist removes tickers from the saved watchlist.
+func (c *Client) RemoveFromWatchlist(ctx context.Context, tickers []string) (*RemoveFromWatchlistResponse, error) {
+	body := WatchlistMutationRequest{
+		Tickers: normalizeTickers(tickers),
+	}
+
+	resp := &RemoveFromWatchlistResponse{}
+	rateLimits, err := c.doDeleteJSON(ctx, "/watchlist", body, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -486,4 +513,16 @@ func (c *Client) do(req *http.Request, dst interface{}) (RateLimits, error) {
 	}
 
 	return rateLimits, nil
+}
+
+func normalizeTickers(tickers []string) []string {
+	normalized := make([]string, 0, len(tickers))
+	for _, ticker := range tickers {
+		trimmed := strings.TrimSpace(ticker)
+		if trimmed == "" {
+			continue
+		}
+		normalized = append(normalized, strings.ToUpper(trimmed))
+	}
+	return normalized
 }

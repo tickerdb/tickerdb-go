@@ -88,13 +88,12 @@ type SchemaResponse struct {
 
 // WatchlistOptions configures the Watchlist request.
 type WatchlistOptions struct {
-	Timeframe *Timeframe `json:"timeframe,omitempty"`
+	Date *string `json:"date,omitempty"`
 }
 
-// WatchlistRequest is the request body for the Watchlist endpoint.
-type WatchlistRequest struct {
-	Tickers   []string   `json:"tickers"`
-	Timeframe *Timeframe `json:"timeframe,omitempty"`
+// WatchlistMutationRequest is the request body for watchlist add/remove operations.
+type WatchlistMutationRequest struct {
+	Tickers []string `json:"tickers"`
 }
 
 // SummaryResponse is the response from the Summary endpoint.
@@ -105,8 +104,28 @@ type SummaryResponse struct {
 
 // WatchlistResponse is the response from the Watchlist endpoint.
 type WatchlistResponse struct {
-	Data       json.RawMessage `json:"data"`
-	RateLimits RateLimits      `json:"-"`
+	Watchlist      []json.RawMessage `json:"watchlist"`
+	TickersSaved   int               `json:"tickers_saved"`
+	TickersFound   int               `json:"tickers_found"`
+	WatchlistLimit int               `json:"watchlist_limit"`
+	DataStatus     string            `json:"data_status"`
+	RateLimits     RateLimits        `json:"-"`
+}
+
+// AddToWatchlistResponse is the response from adding tickers to the saved watchlist.
+type AddToWatchlistResponse struct {
+	Added          []string   `json:"added"`
+	AlreadySaved   []string   `json:"already_saved"`
+	WatchlistCount int        `json:"watchlist_count"`
+	WatchlistLimit int        `json:"watchlist_limit"`
+	RateLimits     RateLimits `json:"-"`
+}
+
+// RemoveFromWatchlistResponse is the response from removing tickers from the saved watchlist.
+type RemoveFromWatchlistResponse struct {
+	Removed        []string   `json:"removed"`
+	WatchlistCount int        `json:"watchlist_count"`
+	RateLimits     RateLimits `json:"-"`
 }
 
 // WatchlistChangesOptions configures the WatchlistChanges request.
@@ -121,10 +140,10 @@ type TickerContext struct {
 
 // WatchlistChangesResponse is the response from the WatchlistChanges endpoint.
 type WatchlistChangesResponse struct {
-	Timeframe      string                          `json:"timeframe"`
-	RunDate        *string                         `json:"run_date"`
+	Timeframe      string                           `json:"timeframe"`
+	RunDate        *string                          `json:"run_date"`
 	Changes        map[string][]WatchlistChangeDiff `json:"changes"`
-	TickerContext  map[string]TickerContext          `json:"ticker_context"`
+	TickerContext  map[string]TickerContext         `json:"ticker_context"`
 	TickersChecked int                              `json:"tickers_checked"`
 	TickersChanged int                              `json:"tickers_changed"`
 	RateLimits     RateLimits                       `json:"-"`

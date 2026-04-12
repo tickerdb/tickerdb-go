@@ -98,14 +98,26 @@ resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
 
 ### Watchlist
 
-Analyze a list of tickers (POST request).
+Get the saved watchlist snapshot for the authenticated account.
 
 ```go
-resp, err := client.Watchlist(ctx, []string{"AAPL", "MSFT", "TSLA"}, nil)
+resp, err := client.Watchlist(ctx, nil)
 
-resp, err := client.Watchlist(ctx, []string{"AAPL", "MSFT"}, &tickerdb.WatchlistOptions{
-	Timeframe: tickerdb.Ptr(tickerdb.TimeframeWeekly),
+resp, err := client.Watchlist(ctx, &tickerdb.WatchlistOptions{
+	Date: tickerdb.Ptr("2025-01-15"),
 })
+```
+
+Add tickers to the saved watchlist:
+
+```go
+resp, err := client.AddToWatchlist(ctx, []string{"AAPL", "MSFT", "TSLA"})
+```
+
+Remove tickers from the saved watchlist:
+
+```go
+resp, err := client.RemoveFromWatchlist(ctx, []string{"TSLA"})
 ```
 
 ### Watchlist Changes
