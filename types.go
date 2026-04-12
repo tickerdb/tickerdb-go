@@ -42,6 +42,9 @@ type SummaryOptions struct {
 	// Historical series range
 	Start *string `json:"start,omitempty"`
 	End   *string `json:"end,omitempty"`
+	// Fields selects which summary fields to return. JSON array or comma-separated.
+	// Supports sections like trend and dotted paths like trend.direction.
+	Fields string `json:"fields,omitempty"`
 	// Date range sampling mode ("even")
 	Sample *string `json:"sample,omitempty"`
 	// Event query parameters
