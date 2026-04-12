@@ -84,6 +84,9 @@ func (c *Client) Summary(ctx context.Context, ticker string, opts *SummaryOption
 		if opts.End != nil {
 			params.Set("end", *opts.End)
 		}
+		if opts.Sample != nil {
+			params.Set("sample", *opts.Sample)
+		}
 		if opts.Field != nil {
 			params.Set("field", *opts.Field)
 		}

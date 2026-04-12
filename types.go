@@ -42,6 +42,8 @@ type SummaryOptions struct {
 	// Historical series range
 	Start *string `json:"start,omitempty"`
 	End   *string `json:"end,omitempty"`
+	// Date range sampling mode ("even")
+	Sample *string `json:"sample,omitempty"`
 	// Event query parameters
 	Field  *string `json:"field,omitempty"`
 	Band   *string `json:"band,omitempty"`
