@@ -56,7 +56,8 @@ type SummaryOptions struct {
 
 // SearchOptions configures the Search request.
 type SearchOptions struct {
-	// Filters is a JSON-encoded string of filter criteria.
+	// Filters is a JSON-encoded array of {field, op, value} objects.
+	// Canonical field names come from /v1/schema/fields and use flat snake_case.
 	Filters   string     `json:"filters,omitempty"`
 	Timeframe *Timeframe `json:"timeframe,omitempty"`
 	Limit     *int       `json:"limit,omitempty"`
