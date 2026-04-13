@@ -95,6 +95,11 @@ resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
 	Field: tickerdb.Ptr("momentum_rsi_zone"),
 	Band:  tickerdb.Ptr("deep_oversold"),
 })
+
+resp, err = client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
+	Field: tickerdb.Ptr("extremes_condition"),
+	Band:  tickerdb.Ptr("deep_oversold"),
+})
 ```
 
 ### Watchlist
