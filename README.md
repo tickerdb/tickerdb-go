@@ -38,6 +38,7 @@ func main() {
 	}
 
 	fmt.Println(string(resp.Data))
+	fmt.Println("snapshot date is inside resp.Data as as_of_date")
 	fmt.Printf("Requests remaining: %d\n", resp.RateLimits.RequestsRemaining)
 }
 ```
@@ -91,7 +92,7 @@ Query event occurrences for a specific band field.
 
 ```go
 resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
-	Field: tickerdb.Ptr("rsi_zone"),
+	Field: tickerdb.Ptr("momentum_rsi_zone"),
 	Band:  tickerdb.Ptr("deep_oversold"),
 })
 ```
@@ -102,6 +103,7 @@ Get the saved watchlist snapshot for the authenticated account.
 
 ```go
 resp, err := client.Watchlist(ctx, nil)
+fmt.Println(resp.AsOfDate)
 
 resp, err := client.Watchlist(ctx, &tickerdb.WatchlistOptions{
 	Date: tickerdb.Ptr("2025-01-15"),
@@ -135,6 +137,8 @@ resp, err := client.WatchlistChanges(ctx, &tickerdb.WatchlistChangesOptions{
 ## Band Stability Metadata
 
 Every band field (trend direction, momentum zone, etc.) now includes a sibling `_meta` object with stability context. This tells you how long a state has been held, how often it has flipped recently, and an overall stability label.
+
+Watchlist responses also expose a top-level `AsOfDate` field so clients can see which session date the compact snapshot represents.
 
 ```go
 // New types for stability metadata

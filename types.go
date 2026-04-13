@@ -114,6 +114,7 @@ type WatchlistResponse struct {
 	TickersFound   int               `json:"tickers_found"`
 	WatchlistLimit int               `json:"watchlist_limit"`
 	DataStatus     string            `json:"data_status"`
+	AsOfDate       *string           `json:"as_of_date"`
 	RateLimits     RateLimits        `json:"-"`
 }
 
