@@ -1,8 +1,8 @@
-# TickerDB Go SDK
+# TickerDB - Financial context for agents.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/tickerdb/tickerdb-go.svg)](https://pkg.go.dev/github.com/tickerdb/tickerdb-go)
 
-Official Go SDK for the [TickerDB](https://tickerdb.com) financial data API.
+Pre-computed market data that improves agent reasoning, reduces token usage, and replaces custom data pipelines.
 
 - **API Docs:** <https://tickerdb.com/docs>
 - **Website:** <https://tickerdb.com>
