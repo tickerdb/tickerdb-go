@@ -21,6 +21,7 @@ const (
 )
 
 // BandMeta contains stability metadata for a band field (Plus/Pro tiers).
+// It is available in summary responses when requested and in watchlist responses.
 type BandMeta struct {
 	Timeframe             string    `json:"timeframe"`
 	PeriodsInCurrentState int       `json:"periods_in_current_state"`
@@ -45,6 +46,9 @@ type SummaryOptions struct {
 	// Fields selects which summary fields to return. JSON array or comma-separated.
 	// Supports sections like trend and dotted paths like trend.direction.
 	Fields string `json:"fields,omitempty"`
+	// Meta includes sibling _meta / status_meta stability objects in snapshot and
+	// history responses. Explicit *_meta field paths still work without this flag.
+	Meta *bool `json:"meta,omitempty"`
 	// Date range sampling mode ("even")
 	Sample *string `json:"sample,omitempty"`
 	// Event query parameters

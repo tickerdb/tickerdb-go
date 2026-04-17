@@ -69,6 +69,9 @@ func NewClient(apiKey string, opts ...Option) *Client {
 //   - Historical snapshot: Set Date for a point-in-time snapshot.
 //   - Historical series: Set Start/End for a date range of snapshots.
 //   - Events: Set Field (and optionally Band) for band transition history.
+//
+// Snapshot and history responses stay band-first by default. Set Meta to true
+// to include sibling _meta / status_meta stability objects across the payload.
 func (c *Client) Summary(ctx context.Context, ticker string, opts *SummaryOptions) (*SummaryResponse, error) {
 	params := url.Values{}
 	if opts != nil {
@@ -86,6 +89,9 @@ func (c *Client) Summary(ctx context.Context, ticker string, opts *SummaryOption
 		}
 		if opts.Fields != "" {
 			params.Set("fields", opts.Fields)
+		}
+		if opts.Meta != nil {
+			params.Set("meta", strconv.FormatBool(*opts.Meta))
 		}
 		if opts.Sample != nil {
 			params.Set("sample", *opts.Sample)
@@ -290,14 +296,14 @@ func (c *Client) DeleteWebhook(ctx context.Context, req DeleteWebhookRequest) (*
 //	    Limit(10).
 //	    Execute(ctx)
 type SearchBuilder struct {
-	client         *Client
-	filters        []searchFilter
-	fields         []string
-	sortBy         *string
-	sortDirection  *string
-	timeframe      *Timeframe
-	limit          *int
-	offset         *int
+	client        *Client
+	filters       []searchFilter
+	fields        []string
+	sortBy        *string
+	sortDirection *string
+	timeframe     *Timeframe
+	limit         *int
+	offset        *int
 }
 
 type searchFilter struct {

@@ -75,6 +75,18 @@ resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
 })
 ```
 
+Summary stays band-first by default, so sibling `_meta` / `status_meta` stability objects are omitted unless you opt in:
+
+```go
+resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
+	Meta: tickerdb.Ptr(true),
+})
+
+resp, err = client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
+	Fields: `["trend.direction","trend.direction_meta"]`,
+})
+```
+
 ### Summary with Date Range
 
 Get a summary series for one ticker across a date range by passing `Start` and `End`.
@@ -141,7 +153,7 @@ resp, err := client.WatchlistChanges(ctx, &tickerdb.WatchlistChangesOptions{
 
 ## Band Stability Metadata
 
-Every band field (trend direction, momentum zone, etc.) now includes a sibling `_meta` object with stability context. This tells you how long a state has been held, how often it has flipped recently, and an overall stability label.
+Summary omits sibling `_meta` objects by default so the primary band label stays front-and-center. Set `Meta: tickerdb.Ptr(true)` to include full paid-tier stability metadata across the response, or request just the few `*_meta` fields you need via `Fields`.
 
 Watchlist responses also expose a top-level `AsOfDate` field so clients can see which session date the compact snapshot represents.
 
@@ -152,13 +164,15 @@ Watchlist responses also expose a top-level `AsOfDate` field so clients can see 
 // Stability metadata is available on Plus and Pro tiers only.
 
 // Example: unmarshal summary data and inspect stability
-resp, err := client.Summary(ctx, "AAPL", nil)
+resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
+	Meta: tickerdb.Ptr(true),
+})
 // resp.Data contains _meta objects next to each band field, e.g.:
 // "direction": "uptrend",
 // "direction_meta": { "stability": "established", "periods_in_current_state": 18, ... }
 ```
 
-Stability context also appears in **Watchlist Changes**, which include stability fields for each changed band.
+Stability context also appears in **Watchlist**, which still includes paid-tier `_meta` objects by default, and in **Watchlist Changes**, which include stability fields for each changed band.
 
 ### Query Builder
 
