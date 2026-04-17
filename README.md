@@ -1,8 +1,8 @@
-# TickerDB - Financial context for agents.
+# TickerDB - Market context for agents.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/tickerdb/tickerdb-go.svg)](https://pkg.go.dev/github.com/tickerdb/tickerdb-go)
 
-Pre-computed market data that improves agent reasoning, reduces token usage, and replaces custom data pipelines.
+Pre-computed EOD market context that improves reasoning, reduces token usage, and replaces data pipelines.
 
 - **API Docs:** <https://tickerdb.com/docs>
 - **Website:** <https://tickerdb.com>
@@ -30,7 +30,7 @@ import (
 )
 
 func main() {
-	client := tickerdb.NewClient("YOUR_API_KEY")
+	client := tickerdb.NewClient("tdb_your_api_key")
 
 	resp, err := client.Summary(context.Background(), "AAPL", nil)
 	if err != nil {
@@ -47,13 +47,13 @@ func main() {
 
 ```go
 // Custom base URL
-client := tickerdb.NewClient("YOUR_API_KEY",
+client := tickerdb.NewClient("tdb_your_api_key",
 	tickerdb.WithBaseURL("https://custom-api.example.com/v1"),
 )
 
 // Custom HTTP client (e.g., with timeout)
 httpClient := &http.Client{Timeout: 30 * time.Second}
-client := tickerdb.NewClient("YOUR_API_KEY",
+client := tickerdb.NewClient("tdb_your_api_key",
 	tickerdb.WithHTTPClient(httpClient),
 )
 ```
