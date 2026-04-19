@@ -33,7 +33,7 @@ type RateLimits struct {
 	HourlyRequestReset time.Time
 }
 
-// parseRateLimits extracts rate limit information from HTTP response headers.
+// parseRateLimits extracts request and hourly rate limit information from response headers.
 func parseRateLimits(h http.Header) RateLimits {
 	return RateLimits{
 		RequestLimit:            headerInt(h, "X-Request-Limit"),

@@ -5,6 +5,7 @@ import "encoding/json"
 // Timeframe represents the analysis timeframe.
 type Timeframe string
 
+// Supported analysis timeframes.
 const (
 	TimeframeDaily  Timeframe = "daily"
 	TimeframeWeekly Timeframe = "weekly"
@@ -13,6 +14,7 @@ const (
 // Stability represents how stable/volatile a band field is.
 type Stability string
 
+// Stability values returned by metadata-enabled responses.
 const (
 	StabilityFresh       Stability = "fresh"
 	StabilityHolding     Stability = "holding"

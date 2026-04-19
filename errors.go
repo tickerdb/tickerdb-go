@@ -20,7 +20,7 @@ type APIError struct {
 	Reset *int64 `json:"reset,omitempty"`
 }
 
-// Error implements the error interface.
+// Error formats the API error for logs and callers.
 func (e *APIError) Error() string {
 	if e.UpgradeURL != "" {
 		return fmt.Sprintf("tickerdb: %d %s: %s (upgrade: %s)", e.StatusCode, e.Type, e.Message, e.UpgradeURL)

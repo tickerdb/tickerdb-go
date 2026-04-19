@@ -1,6 +1,6 @@
-// Package tickerdb provides a Go client for the TickerDB financial data API.
+// Package tickerdb provides the official Go client for the TickerDB API.
 //
-// For full API documentation, see https://tickerdb.com/docs
+// For full API documentation, see https://tickerdb.com/docs.
 package tickerdb
 
 import (
