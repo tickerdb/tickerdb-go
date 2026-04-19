@@ -2,7 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/tickerdb/tickerdb-go.svg)](https://pkg.go.dev/github.com/tickerdb/tickerdb-go)
 
-Pre-computed EOD market context that improves reasoning, reduces token usage, and replaces data pipelines.
+Connect your agent to pre-computed market context that improves reasoning and reduces token usage.
 
 - **API Docs:** <https://tickerdb.com/docs>
 - **Website:** <https://tickerdb.com>
