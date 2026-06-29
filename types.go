@@ -54,6 +54,8 @@ type SummaryOptions struct {
 	// Date range sampling mode ("even")
 	Sample *string `json:"sample,omitempty"`
 	// Event query parameters
+	// Field accepts canonical band fields such as trend_ma_crossover_event,
+	// trend_distance_ma50, trend_direction, and momentum_rsi_zone.
 	Field  *string `json:"field,omitempty"`
 	Band   *string `json:"band,omitempty"`
 	Limit  *int    `json:"limit,omitempty"`
@@ -61,8 +63,9 @@ type SummaryOptions struct {
 	After  *string `json:"after,omitempty"`
 	// Cross-asset correlation
 	ContextTicker *string `json:"context_ticker,omitempty"`
-	ContextField  *string `json:"context_field,omitempty"`
-	ContextBand   *string `json:"context_band,omitempty"`
+	// ContextField uses the same canonical band field names as Field.
+	ContextField *string `json:"context_field,omitempty"`
+	ContextBand  *string `json:"context_band,omitempty"`
 }
 
 // SearchOptions configures the Search request.
@@ -75,6 +78,7 @@ type SearchOptions struct {
 	Offset    *int       `json:"offset,omitempty"`
 	// Fields selects which columns to return. JSON array or comma-separated.
 	// Default if omitted: ticker, asset_class, sector, performance, trend_direction,
+	// trend_ma_slope_band, trend_ma_compression_band, trend_ma_crossover_event,
 	// momentum_rsi_zone, extremes_condition, extremes_condition_rarity, volatility_regime,
 	// volume_ratio_band, fundamentals_valuation_zone, range_position.
 	// Use `["*"]` for all 120+ fields. ticker is always included.
