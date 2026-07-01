@@ -78,9 +78,11 @@ type SearchOptions struct {
 	Offset    *int       `json:"offset,omitempty"`
 	// Fields selects which columns to return. JSON array or comma-separated.
 	// Default if omitted: ticker, asset_class, sector, performance, trend_direction,
-	// trend_ma_slope_band, trend_ma_compression_band, trend_ma_crossover_event,
+	// trend_ma20_slope, trend_ma_compression_band, trend_ma_crossover_event,
 	// momentum_rsi_zone, extremes_condition, extremes_condition_rarity, volatility_regime,
 	// volume_ratio_band, fundamentals_valuation_zone, range_position.
+	// Request ma8 through ma200 for raw MA values.
+	// Request trend_ma8_slope through trend_ma200_slope for the full MA slope set.
 	// Use `["*"]` for all 120+ fields. ticker is always included.
 	Fields string `json:"fields,omitempty"`
 	// SortBy is the column name to sort results by. Must be a valid field from the schema.
