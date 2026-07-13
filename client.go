@@ -141,6 +141,9 @@ func (c *Client) Search(ctx context.Context, opts *SearchOptions) (*SearchRespon
 		if opts.Timeframe != nil {
 			params.Set("timeframe", string(*opts.Timeframe))
 		}
+		if opts.Date != nil {
+			params.Set("date", *opts.Date)
+		}
 		if opts.Limit != nil {
 			params.Set("limit", strconv.Itoa(*opts.Limit))
 		}
@@ -280,6 +283,29 @@ func (c *Client) DeleteWebhook(ctx context.Context, req DeleteWebhookRequest) (*
 	return resp, nil
 }
 
+// WebhookDeliveries retrieves the delivery history for webhooks on the account.
+// Filter to a specific webhook with WebhookDeliveriesOptions.WebhookID.
+// This call does not consume a request credit.
+func (c *Client) WebhookDeliveries(ctx context.Context, opts *WebhookDeliveriesOptions) (*WebhookDeliveriesResponse, error) {
+	params := url.Values{}
+	if opts != nil {
+		if opts.WebhookID != nil {
+			params.Set("webhook_id", *opts.WebhookID)
+		}
+		if opts.Limit != nil {
+			params.Set("limit", strconv.Itoa(*opts.Limit))
+		}
+	}
+
+	resp := &WebhookDeliveriesResponse{}
+	rateLimits, err := c.doGet(ctx, "/webhooks/deliveries", params, resp)
+	if err != nil {
+		return nil, err
+	}
+	resp.RateLimits = rateLimits
+	return resp, nil
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Fluent search query builder
 // ──────────────────────────────────────────────────────────────────────────────
@@ -302,6 +328,7 @@ type SearchBuilder struct {
 	sortBy        *string
 	sortDirection *string
 	timeframe     *Timeframe
+	date          *string
 	limit         *int
 	offset        *int
 }
@@ -390,6 +417,13 @@ func (b *SearchBuilder) WithTimeframe(tf Timeframe) *SearchBuilder {
 	return b
 }
 
+// OnDate requests a historical snapshot for the given date (YYYY-MM-DD).
+// Omit to query the latest available snapshot.
+func (b *SearchBuilder) OnDate(date string) *SearchBuilder {
+	b.date = &date
+	return b
+}
+
 // Execute runs the built query against the search endpoint.
 func (b *SearchBuilder) Execute(ctx context.Context) (*SearchResponse, error) {
 	opts := &SearchOptions{}
@@ -413,6 +447,7 @@ func (b *SearchBuilder) Execute(ctx context.Context) (*SearchResponse, error) {
 	opts.SortBy = b.sortBy
 	opts.SortDirection = b.sortDirection
 	opts.Timeframe = b.timeframe
+	opts.Date = b.date
 	opts.Limit = b.limit
 	opts.Offset = b.offset
 

@@ -74,6 +74,9 @@ type SearchOptions struct {
 	// Canonical field names come from /v1/schema/fields and use flat snake_case.
 	Filters   string     `json:"filters,omitempty"`
 	Timeframe *Timeframe `json:"timeframe,omitempty"`
+	// Date requests a historical snapshot for the given date (YYYY-MM-DD).
+	// Omit for the latest available snapshot.
+	Date      *string    `json:"date,omitempty"`
 	Limit     *int       `json:"limit,omitempty"`
 	Offset    *int       `json:"offset,omitempty"`
 	// Fields selects which columns to return. JSON array or comma-separated.
@@ -97,10 +100,42 @@ type SearchResponse struct {
 	RateLimits RateLimits      `json:"-"`
 }
 
+// Field describes a single queryable snapshot field as returned by
+// GET /v1/schema/fields and embedded in GET /v1/screeners.
+type Field struct {
+	// Name is the canonical flat snake_case column name (e.g. "momentum_rsi_zone").
+	Name string `json:"name"`
+	// Type is the SQL data type: "text", "integer", "numeric", "boolean", or "bigint".
+	Type string `json:"type"`
+	// Category groups related fields (e.g. "trend", "momentum", "fundamentals").
+	Category string `json:"category"`
+	// Values lists the allowed enum values for text fields. Nil for numeric/boolean fields.
+	Values []string `json:"values,omitempty"`
+	// Description is a human-readable explanation of the field.
+	Description string `json:"description"`
+}
+
+// SchemaFields is the typed response shape embedded in GET /v1/schema/fields.
+type SchemaFields struct {
+	TotalFields int     `json:"total_fields"`
+	Categories  []string `json:"categories"`
+	Operators   []string `json:"operators"`
+	Fields      []Field  `json:"fields"`
+}
+
 // SchemaResponse is the response from the Schema endpoint.
 type SchemaResponse struct {
 	Data       json.RawMessage `json:"data"`
 	RateLimits RateLimits      `json:"-"`
+}
+
+// Fields unmarshals the raw Data payload into a typed SchemaFields struct.
+func (r *SchemaResponse) Fields() (*SchemaFields, error) {
+	var s SchemaFields
+	if err := json.Unmarshal(r.Data, &s); err != nil {
+		return nil, err
+	}
+	return &s, nil
 }
 
 // WatchlistOptions configures the Watchlist request.
@@ -178,6 +213,17 @@ type WatchlistChangeDiff struct {
 	FlipsLookback         *string     `json:"flips_lookback,omitempty"`
 }
 
+// Webhook event type constants.
+const (
+	// WebhookEventWatchlistChanges fires after each pipeline run when any
+	// watchlist ticker has a field-level band change.
+	WebhookEventWatchlistChanges = "watchlist.changes"
+
+	// WebhookEventDataReady fires after each pipeline run when fresh snapshot
+	// data is available, regardless of watchlist changes.
+	WebhookEventDataReady = "data.ready"
+)
+
 // WebhookEvents is a map of event names to enabled state.
 type WebhookEvents map[string]bool
 
@@ -237,6 +283,48 @@ type WebhookUpdateResponse struct {
 type WebhookDeleteResponse struct {
 	Deleted      string `json:"deleted"`
 	WebhookCount int    `json:"webhook_count"`
+}
+
+// WebhookDeliveriesOptions configures a WebhookDeliveries request.
+type WebhookDeliveriesOptions struct {
+	// WebhookID filters results to a single webhook. Omit to return deliveries
+	// across all webhooks on the account.
+	WebhookID *string
+
+	// Limit caps the number of records returned (1–200, default 50).
+	Limit *int
+}
+
+// WebhookDelivery is a single webhook delivery attempt record.
+type WebhookDelivery struct {
+	ID        string `json:"id"`
+	WebhookID string `json:"webhook_id"`
+
+	// EventType is the event that triggered the delivery (e.g. "watchlist.changes").
+	EventType string `json:"event_type"`
+
+	// Timeframe is the pipeline timeframe that produced the event ("daily" or "weekly").
+	Timeframe string `json:"timeframe"`
+
+	// RunDate is the pipeline run date (YYYY-MM-DD) that triggered the delivery.
+	RunDate string `json:"run_date"`
+
+	// Status is the delivery outcome: "pending", "success", or "failed".
+	Status string `json:"status"`
+
+	AttemptCount *int    `json:"attempt_count"`
+	HTTPStatus   *int    `json:"http_status"`
+	Error        *string `json:"error"`
+	StartedAt    *string `json:"started_at"`
+	CompletedAt  *string `json:"completed_at"`
+}
+
+// WebhookDeliveriesResponse is the response from the WebhookDeliveries endpoint.
+type WebhookDeliveriesResponse struct {
+	Deliveries []WebhookDelivery `json:"deliveries"`
+	Count      int               `json:"count"`
+	Limit      int               `json:"limit"`
+	RateLimits RateLimits        `json:"-"`
 }
 
 // Ptr returns a pointer to the given value. This is a convenience helper

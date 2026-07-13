@@ -22,7 +22,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -38,7 +37,6 @@ func main() {
 	}
 
 	fmt.Println(string(resp.Data))
-	fmt.Println("snapshot date is inside resp.Data as as_of_date")
 	fmt.Printf("Requests remaining: %d\n", resp.RateLimits.RequestsRemaining)
 }
 ```
@@ -59,6 +57,83 @@ client := tickerdb.NewClient("tdb_your_api_key",
 ```
 
 ## Endpoints
+
+### Account
+
+Get the authenticated account's plan, limits, and usage.
+
+```go
+resp, err := client.Account(ctx)
+if err != nil {
+	log.Fatal(err)
+}
+
+fmt.Printf("Plan:      %s\n", resp.TierFull)
+fmt.Printf("Email:     %s\n", resp.Email)
+fmt.Printf("Credits:   %.2f\n", resp.Usage.CreditBalance)
+fmt.Printf("Requests:  %d / %d this month\n",
+	resp.Usage.MonthlyRequestsUsed, resp.Limits.MonthlyRequests)
+fmt.Printf("History:   %d days\n", resp.Limits.HistoryDays)
+```
+
+### OHLCV
+
+Fetch daily or weekly OHLCV bars for a ticker. Each request consumes **1 credit per 100 bars** (rounded up).
+
+```go
+resp, err := client.OHLCV(ctx, "AAPL", nil)
+if err != nil {
+	log.Fatal(err)
+}
+
+for _, bar := range resp.Bars {
+	fmt.Printf("%s  O:%.2f H:%.2f L:%.2f C:%.2f V:%.0f\n",
+		bar.Date, bar.Open, bar.High, bar.Low, bar.Close, bar.Volume)
+}
+fmt.Printf("Credits remaining: %.2f\n", resp.RateLimits.CreditBalance)
+```
+
+With options:
+
+```go
+resp, err := client.OHLCV(ctx, "AAPL", &tickerdb.OHLCVOptions{
+	Start: tickerdb.Ptr("2024-01-01"),
+	End:   tickerdb.Ptr("2024-12-31"),
+	Order: tickerdb.Ptr("asc"),
+	Limit: tickerdb.Ptr(100),
+})
+```
+
+#### Cursor Pagination
+
+`OHLCV` returns up to 500 bars per page. Use `OHLCVAll` to transparently collect all pages:
+
+```go
+// OHLCVAll follows next_cursor automatically (caps at 500 pages).
+bars, err := client.OHLCVAll(ctx, "AAPL", &tickerdb.OHLCVOptions{
+	Start: tickerdb.Ptr("2020-01-01"),
+})
+fmt.Printf("Fetched %d total bars\n", len(bars))
+```
+
+Or paginate manually:
+
+```go
+var allBars []tickerdb.OHLCVBar
+opts := &tickerdb.OHLCVOptions{Start: tickerdb.Ptr("2020-01-01")}
+
+for {
+	page, err := client.OHLCV(ctx, "AAPL", opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	allBars = append(allBars, page.Bars...)
+	if !page.HasMore {
+		break
+	}
+	opts.Cursor = page.NextCursor
+}
+```
 
 ### Summary
 
@@ -89,9 +164,7 @@ resp, err = client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
 })
 ```
 
-### Summary with Date Range
-
-Get a summary series for one ticker across a date range by passing `Start` and `End`.
+#### Summary with Date Range
 
 ```go
 resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
@@ -100,20 +173,47 @@ resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
 })
 ```
 
-### Summary with Events Filter
-
-Query event occurrences for a specific band field.
+#### Summary with Events Filter
 
 ```go
 resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
 	Field: tickerdb.Ptr("momentum_rsi_zone"),
 	Band:  tickerdb.Ptr("deep_oversold"),
 })
+```
 
-resp, err = client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
-	Field: tickerdb.Ptr("extremes_condition"),
-	Band:  tickerdb.Ptr("deep_oversold"),
+### Search
+
+Search across all tickers by categorical state.
+
+```go
+resp, err := client.Search(ctx, &tickerdb.SearchOptions{
+	Filters: `[{"field":"momentum_rsi_zone","op":"eq","value":"oversold"}]`,
 })
+```
+
+Request a historical snapshot by passing `Date`:
+
+```go
+resp, err := client.Search(ctx, &tickerdb.SearchOptions{
+	Filters: `[{"field":"trend_direction","op":"eq","value":"uptrend"}]`,
+	Date:    tickerdb.Ptr("2025-01-15"),
+})
+```
+
+#### Query Builder
+
+The fluent query builder generates the filter JSON for you. Chain methods in order: `Select`, filters, `OnDate`, `Sort`, `Limit`.
+
+```go
+results, err := client.Query().
+	Select("ticker", "sector", "momentum_rsi_zone").
+	Eq("momentum_rsi_zone", "oversold").
+	Eq("sector", "Technology").
+	OnDate("2025-01-15").
+	Sort("extremes_condition_percentile", "asc").
+	Limit(10).
+	Execute(ctx)
 ```
 
 ### Watchlist
@@ -129,21 +229,16 @@ resp, err := client.Watchlist(ctx, &tickerdb.WatchlistOptions{
 })
 ```
 
-Add tickers to the saved watchlist:
+Add or remove tickers:
 
 ```go
 resp, err := client.AddToWatchlist(ctx, []string{"AAPL", "MSFT", "TSLA"})
-```
-
-Remove tickers from the saved watchlist:
-
-```go
 resp, err := client.RemoveFromWatchlist(ctx, []string{"TSLA"})
 ```
 
 ### Watchlist Changes
 
-Get field-level state changes for your saved watchlist tickers since the last pipeline run.
+Get field-level state changes for your saved watchlist tickers.
 
 ```go
 resp, err := client.WatchlistChanges(ctx, nil)
@@ -153,19 +248,154 @@ resp, err := client.WatchlistChanges(ctx, &tickerdb.WatchlistChangesOptions{
 })
 ```
 
-## Band Stability Metadata
+### Screeners
 
-Summary omits sibling `_meta` objects by default so the primary band label stays front-and-center. Set `Meta: tickerdb.Ptr(true)` to include full paid-tier stability metadata across the response, or request just the few `*_meta` fields you need via `Fields`.
-
-Watchlist responses also expose a top-level `AsOfDate` field so clients can see which session date the compact snapshot represents.
+Screeners are saved filter configurations that run against the latest snapshot.
 
 ```go
-// New types for stability metadata
-// tickerdb.Stability     — "fresh" | "holding" | "established" | "volatile"
-// tickerdb.BandMeta      — full metadata (stability, periods_in_current_state, flips_recent, flips_lookback)
+// List built-in defaults and saved screeners
+list, err := client.ListScreeners(ctx)
+for _, s := range list.Screeners {
+	fmt.Printf("[%s] %s  readonly=%v\n", s.Kind, s.Name, s.Readonly)
+}
+```
+
+Create a screener:
+
+```go
+screener, err := client.CreateScreener(ctx, tickerdb.CreateScreenerRequest{
+	Name:      "Oversold Tech",
+	Timeframe: "daily",
+	Filters: []tickerdb.ScreenerFilter{
+		{Field: "momentum_rsi_zone", Op: "in", Value: []string{"oversold", "deep_oversold"}},
+		{Field: "sector", Op: "eq", Value: "Technology"},
+	},
+	Sort: &tickerdb.ScreenerSort{Field: "extremes_condition_percentile", Direction: "asc"},
+})
+fmt.Println(screener.ID)
+```
+
+Change filters (fire when a field transitions between bands):
+
+```go
+screener, err := client.CreateScreener(ctx, tickerdb.CreateScreenerRequest{
+	Name: "Trend Reversals",
+	Filters: []tickerdb.ScreenerFilter{
+		{
+			Type:  "change",
+			Field: "trend_direction",
+			Op:    "changed",
+			From:  "downtrend",
+			To:    "uptrend",
+		},
+	},
+})
+```
+
+Update and delete:
+
+```go
+updated, err := client.UpdateScreener(ctx, tickerdb.UpdateScreenerRequest{
+	ID:   screener.ID,
+	Name: tickerdb.Ptr("Oversold Tech (revised)"),
+})
+
+del, err := client.DeleteScreener(ctx, screener.ID, "custom")
+fmt.Println(del.Deleted) // true
+```
+
+### Webhooks
+
+Manage webhooks that fire after each pipeline run.
+
+```go
+// Create
+wh, err := client.CreateWebhook(ctx, tickerdb.CreateWebhookRequest{
+	URL: "https://example.com/hooks/tickerdb",
+	Events: tickerdb.WebhookEvents{
+		tickerdb.WebhookEventWatchlistChanges: true,
+		tickerdb.WebhookEventDataReady:        false,
+	},
+})
+fmt.Println(wh.Secret) // store securely — shown once
+
+// List / update / delete
+list, err := client.ListWebhooks(ctx)
+_, err = client.UpdateWebhook(ctx, tickerdb.UpdateWebhookRequest{ID: wh.ID, Active: tickerdb.Ptr(false)})
+_, err = client.DeleteWebhook(ctx, wh.ID)
+```
+
+#### Webhook Deliveries
+
+Inspect delivery history for all webhooks on the account, or filter to one:
+
+```go
+// All deliveries
+resp, err := client.WebhookDeliveries(ctx, nil)
+
+// Filtered by webhook
+resp, err := client.WebhookDeliveries(ctx, &tickerdb.WebhookDeliveriesOptions{
+	WebhookID: tickerdb.Ptr(wh.ID),
+	Limit:     tickerdb.Ptr(20),
+})
+
+for _, d := range resp.Deliveries {
+	fmt.Printf("%s  %s  status=%s\n", d.RunDate, d.EventType, d.Status)
+}
+```
+
+Webhook event type constants:
+
+```go
+tickerdb.WebhookEventWatchlistChanges // "watchlist.changes"
+tickerdb.WebhookEventDataReady        // "data.ready"
+```
+
+### Team
+
+Manage team membership (Business plan).
+
+```go
+// List teams and incoming invites
+list, err := client.ListTeams(ctx)
+for _, t := range list.Teams {
+	fmt.Printf("%s  seats %d/%d  your role: %s\n",
+		t.Name, t.SeatsUsed, t.MaxSeats, t.YourRole)
+}
+
+// Create a team
+r, err := client.CreateTeam(ctx, "Acme Trading")
+fmt.Println(r.Team.ID)
+
+// Invite a member
+r, err = client.InviteTeamMember(ctx, teamID, "alice@example.com", "member")
+fmt.Println(r.Invite.ExpiresAt)
+
+// Manage members
+_, err = client.PromoteTeamMember(ctx, teamID, userID, "admin")
+_, err = client.RemoveTeamMember(ctx, teamID, userID)
+
+// Manage invites
+_, err = client.ResendTeamInvite(ctx, teamID, inviteID)
+_, err = client.CancelTeamInvite(ctx, teamID, inviteID)
+
+// Team settings
+_, err = client.RenameTeam(ctx, teamID, "Acme Quant")
+_, err = client.SetTeamSeats(ctx, teamID, 10)
+
+// Leave a team (non-owners only)
+_, err = client.LeaveTeam(ctx, teamID)
+```
+
+## Band Stability Metadata
+
+Set `Meta: tickerdb.Ptr(true)` in `SummaryOptions` to include full stability metadata across the response, or request specific `*_meta` paths via `Fields`.
+
+```go
+// tickerdb.Stability  — "fresh" | "holding" | "established" | "volatile"
+// tickerdb.BandMeta   — stability, periods_in_current_state, flips_recent, flips_lookback
 // Stability metadata is available on Plus and Pro tiers only.
 
-// Example: unmarshal summary data and inspect stability
 resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
 	Meta: tickerdb.Ptr(true),
 })
@@ -174,80 +404,82 @@ resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
 // "direction_meta": { "stability": "established", "periods_in_current_state": 18, ... }
 ```
 
-Stability context also appears in **Watchlist**, which still includes paid-tier `_meta` objects by default, and in **Watchlist Changes**, which include stability fields for each changed band.
-
-### Query Builder
-
-The SDK includes a fluent query builder for searching assets by categorical state. Chain methods in order: Select, filters, Sort, Limit.
-
-```go
-results, err := client.Query().
-    Select("ticker", "sector", "momentum_rsi_zone").
-    Eq("momentum_rsi_zone", "oversold").
-    Eq("sector", "Technology").
-    Sort("extremes_condition_percentile", "asc").
-    Limit(10).
-    Execute(ctx)
-```
-
-## Working with Responses
-
-All response structs contain a `Data` field of type `json.RawMessage` and a `RateLimits` field. You can unmarshal `Data` into your own structs:
-
-```go
-resp, err := client.Summary(ctx, "AAPL", nil)
-if err != nil {
-	log.Fatal(err)
-}
-
-var result map[string]interface{}
-json.Unmarshal(resp.Data, &result)
-```
+Stability context also appears in **Watchlist** (always included) and in **Watchlist Changes** (per changed band).
 
 ## Error Handling
 
-All API errors are returned as `*tickerdb.APIError`, which implements the `error` interface.
+All API errors are returned as `*tickerdb.APIError`.
 
 ```go
 import "errors"
 
-resp, err := client.Summary(ctx, "INVALID", nil)
+_, err := client.OHLCV(ctx, "AAPL", nil)
 if err != nil {
 	var apiErr *tickerdb.APIError
 	if errors.As(err, &apiErr) {
-		fmt.Printf("Status: %d\n", apiErr.StatusCode)
-		fmt.Printf("Type: %s\n", apiErr.Type)
+		fmt.Printf("Status:  %d\n", apiErr.StatusCode)
+		fmt.Printf("Type:    %s\n", apiErr.Type)
 		fmt.Printf("Message: %s\n", apiErr.Message)
 
-		if apiErr.IsRateLimitError() {
-			fmt.Println("Rate limited! Try again later.")
-		}
-		if apiErr.IsForbiddenError() {
+		switch {
+		case apiErr.IsRateLimitError():
+			if rt, ok := apiErr.ResetTime(); ok {
+				fmt.Printf("Resets at: %s\n", rt.Format(time.RFC3339))
+			}
+		case apiErr.IsForbiddenError():
 			fmt.Printf("Upgrade at: %s\n", apiErr.UpgradeURL)
+		case apiErr.IsPaymentRequiredError():
+			fmt.Println("Payment required.")
+		case apiErr.IsAuthError():
+			fmt.Println("Check your API key.")
+		}
+
+		// Credit shortfall (OHLCV requests that exceed credit balance)
+		if apiErr.CreditsRequired != nil {
+			fmt.Printf("Need %d credits, have %d\n",
+				*apiErr.CreditsRequired, *apiErr.CreditsRemaining)
 		}
 	} else {
-		// Network or other non-API error
-		fmt.Printf("Error: %v\n", err)
+		fmt.Printf("Network error: %v\n", err)
 	}
 }
 ```
+
+Helper methods on `*APIError`:
+
+| Method | Status code |
+|---|---|
+| `IsAuthError()` | 401 |
+| `IsForbiddenError()` | 403 |
+| `IsNotFoundError()` | 404 |
+| `IsRateLimitError()` | 429 |
+| `IsPaymentRequiredError()` | 402 |
 
 ## Rate Limits
 
 Every response includes rate limit information parsed from response headers:
 
 ```go
-resp, err := client.Summary(ctx, "AAPL", nil)
+resp, err := client.OHLCV(ctx, "AAPL", nil)
 if err != nil {
 	log.Fatal(err)
 }
 
 rl := resp.RateLimits
-fmt.Printf("Requests: %d/%d (resets %s)\n",
-	rl.RequestsUsed, rl.RequestLimit, rl.RequestReset)
-fmt.Printf("Hourly: %d/%d (resets %s)\n",
-	rl.HourlyRequestsUsed, rl.HourlyRequestLimit, rl.HourlyRequestReset)
+fmt.Printf("Requests: %d / %d (resets %s)\n",
+	rl.RequestsUsed, rl.RequestLimit, rl.RequestReset.Format(time.RFC3339))
+fmt.Printf("Credits remaining: %.2f\n", rl.CreditBalance)
 ```
+
+`RateLimits` fields:
+
+| Field | Header | Notes |
+|---|---|---|
+| `RequestLimit` | `X-Request-Limit` | Monthly request cap |
+| `RequestsUsed` | `X-Requests-Used` | Requests consumed this month |
+| `RequestsRemaining` | `X-Requests-Remaining` | Requests left this month |
+| `RequestReset` | `X-Request-Reset` | When the monthly counter resets |
+| `CreditBalance` | `X-Credit-Balance` | Remaining OHLCV credits |
 
 ## License
 
