@@ -1,8 +1,11 @@
 package tickerdb
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
-// APIError represents an error response from the TickerDB.
+// APIError represents an error response from the TickerDB API.
 type APIError struct {
 	// StatusCode is the HTTP status code of the response.
 	StatusCode int `json:"-"`
@@ -16,8 +19,17 @@ type APIError struct {
 	// UpgradeURL is present on 403 and 429 responses, pointing to a plan upgrade page.
 	UpgradeURL string `json:"upgrade_url,omitempty"`
 
-	// Reset is a Unix timestamp indicating when the rate limit resets (429 responses).
-	Reset *int64 `json:"reset,omitempty"`
+	// Reset is an RFC 3339 timestamp indicating when the rate limit resets (429
+	// responses). Use ResetTime() to parse it into a time.Time.
+	Reset *string `json:"reset,omitempty"`
+
+	// CreditsRequired is the number of credits needed for the request (429
+	// insufficient_credits responses from metered endpoints such as OHLCV).
+	CreditsRequired *int `json:"credits_required,omitempty"`
+
+	// CreditsRemaining is the number of credits available at the time of the
+	// error (429 insufficient_credits responses).
+	CreditsRemaining *int `json:"credits_remaining,omitempty"`
 }
 
 // Error formats the API error for logs and callers.
@@ -26,6 +38,19 @@ func (e *APIError) Error() string {
 		return fmt.Sprintf("tickerdb: %d %s: %s (upgrade: %s)", e.StatusCode, e.Type, e.Message, e.UpgradeURL)
 	}
 	return fmt.Sprintf("tickerdb: %d %s: %s", e.StatusCode, e.Type, e.Message)
+}
+
+// ResetTime parses the Reset field into a time.Time. Returns the zero value
+// and false if Reset is not set or cannot be parsed.
+func (e *APIError) ResetTime() (time.Time, bool) {
+	if e.Reset == nil {
+		return time.Time{}, false
+	}
+	t, err := time.Parse(time.RFC3339, *e.Reset)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return t, true
 }
 
 // IsRateLimitError reports whether the error is a 429 rate limit error.
@@ -46,6 +71,12 @@ func (e *APIError) IsForbiddenError() bool {
 // IsNotFoundError reports whether the error is a 404 not found error.
 func (e *APIError) IsNotFoundError() bool {
 	return e.StatusCode == 404
+}
+
+// IsPaymentRequiredError reports whether the error is a 402 payment required
+// error (e.g., card declined on team seat changes).
+func (e *APIError) IsPaymentRequiredError() bool {
+	return e.StatusCode == 402
 }
 
 // apiErrorEnvelope is used to unmarshal the error response JSON.
