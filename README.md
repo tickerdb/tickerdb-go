@@ -1,8 +1,8 @@
-# TickerDB - Market context for agents.
+# TickerDB - Pre-computed market data for agents.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/tickerdb/tickerdb-go.svg)](https://pkg.go.dev/github.com/tickerdb/tickerdb-go)
 
-Connect your agent to pre-computed market context that improves reasoning and reduces token usage.
+Connect your agent to hundreds of indicators like trend_direction, support_level, and analyst_consensus to improve reasoning and reduce token usage.
 
 - **API Docs:** <https://tickerdb.com/docs>
 - **Website:** <https://tickerdb.com>
