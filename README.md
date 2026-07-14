@@ -248,62 +248,6 @@ resp, err := client.WatchlistChanges(ctx, &tickerdb.WatchlistChangesOptions{
 })
 ```
 
-### Screeners
-
-Screeners are saved filter configurations that run against the latest snapshot.
-
-```go
-// List built-in defaults and saved screeners
-list, err := client.ListScreeners(ctx)
-for _, s := range list.Screeners {
-	fmt.Printf("[%s] %s  readonly=%v\n", s.Kind, s.Name, s.Readonly)
-}
-```
-
-Create a screener:
-
-```go
-screener, err := client.CreateScreener(ctx, tickerdb.CreateScreenerRequest{
-	Name:      "Oversold Tech",
-	Timeframe: "daily",
-	Filters: []tickerdb.ScreenerFilter{
-		{Field: "momentum_rsi_zone", Op: "in", Value: []string{"oversold", "deep_oversold"}},
-		{Field: "sector", Op: "eq", Value: "Technology"},
-	},
-	Sort: &tickerdb.ScreenerSort{Field: "extremes_condition_percentile", Direction: "asc"},
-})
-fmt.Println(screener.ID)
-```
-
-Change filters (fire when a field transitions between bands):
-
-```go
-screener, err := client.CreateScreener(ctx, tickerdb.CreateScreenerRequest{
-	Name: "Trend Reversals",
-	Filters: []tickerdb.ScreenerFilter{
-		{
-			Type:  "change",
-			Field: "trend_direction",
-			Op:    "changed",
-			From:  "downtrend",
-			To:    "uptrend",
-		},
-	},
-})
-```
-
-Update and delete:
-
-```go
-updated, err := client.UpdateScreener(ctx, tickerdb.UpdateScreenerRequest{
-	ID:   screener.ID,
-	Name: tickerdb.Ptr("Oversold Tech (revised)"),
-})
-
-del, err := client.DeleteScreener(ctx, screener.ID, "custom")
-fmt.Println(del.Deleted) // true
-```
-
 ### Webhooks
 
 Manage webhooks that fire after each pipeline run.
