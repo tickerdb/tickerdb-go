@@ -10,14 +10,8 @@ type AccountLimits struct {
 	// OverageEnabled reports whether pay-as-you-go overage is active.
 	OverageEnabled bool `json:"overage_enabled"`
 
-	// WatchlistLimit is the maximum number of tickers in the saved watchlist.
-	WatchlistLimit int `json:"watchlist_limit"`
-
 	// SearchResults is the maximum results returned per search request.
 	SearchResults int `json:"search_results"`
-
-	// WebhookURLs is the maximum number of webhook endpoints allowed.
-	WebhookURLs int `json:"webhook_urls"`
 
 	// HistoryDays is the number of calendar days of history accessible on
 	// the current plan.

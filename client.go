@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	Version        = "0.2.1"
+	Version        = "0.2.2"
 	defaultBaseURL = "https://api.tickerdb.com/v1"
 	userAgent      = "tickerdb-go/" + Version
 )
@@ -175,131 +175,6 @@ func (c *Client) Search(ctx context.Context, opts *SearchOptions) (*SearchRespon
 func (c *Client) Schema(ctx context.Context) (*SchemaResponse, error) {
 	resp := &SchemaResponse{}
 	rateLimits, err := c.doGet(ctx, "/schema/fields", nil, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// Watchlist retrieves the saved watchlist snapshot for the authenticated account.
-func (c *Client) Watchlist(ctx context.Context, opts *WatchlistOptions) (*WatchlistResponse, error) {
-	params := url.Values{}
-	if opts != nil && opts.Date != nil {
-		params.Set("date", *opts.Date)
-	}
-	resp := &WatchlistResponse{}
-	rateLimits, err := c.doGet(ctx, "/watchlist", params, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// AddToWatchlist adds tickers to the saved watchlist.
-func (c *Client) AddToWatchlist(ctx context.Context, tickers []string) (*AddToWatchlistResponse, error) {
-	body := WatchlistMutationRequest{
-		Tickers: normalizeTickers(tickers),
-	}
-
-	resp := &AddToWatchlistResponse{}
-	rateLimits, err := c.doPost(ctx, "/watchlist", body, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// RemoveFromWatchlist removes tickers from the saved watchlist.
-func (c *Client) RemoveFromWatchlist(ctx context.Context, tickers []string) (*RemoveFromWatchlistResponse, error) {
-	body := WatchlistMutationRequest{
-		Tickers: normalizeTickers(tickers),
-	}
-
-	resp := &RemoveFromWatchlistResponse{}
-	rateLimits, err := c.doDeleteJSON(ctx, "/watchlist", body, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// WatchlistChanges returns field-level state changes for the user's saved
-// watchlist tickers since the last pipeline run. Available on all tiers.
-func (c *Client) WatchlistChanges(ctx context.Context, opts *WatchlistChangesOptions) (*WatchlistChangesResponse, error) {
-	params := url.Values{}
-	if opts != nil && opts.Timeframe != nil {
-		params.Set("timeframe", string(*opts.Timeframe))
-	}
-
-	resp := &WatchlistChangesResponse{}
-	rateLimits, err := c.doGet(ctx, "/watchlist/changes", params, resp)
-	if err != nil {
-		return nil, err
-	}
-	resp.RateLimits = rateLimits
-	return resp, nil
-}
-
-// ListWebhooks retrieves all webhooks for the authenticated account.
-func (c *Client) ListWebhooks(ctx context.Context) (*WebhookListResponse, error) {
-	resp := &WebhookListResponse{}
-	_, err := c.doGet(ctx, "/webhooks", nil, resp)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-// CreateWebhook creates a new webhook.
-func (c *Client) CreateWebhook(ctx context.Context, req CreateWebhookRequest) (*WebhookCreated, error) {
-	resp := &WebhookCreated{}
-	_, err := c.doPost(ctx, "/webhooks", req, resp)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-// UpdateWebhook updates an existing webhook.
-func (c *Client) UpdateWebhook(ctx context.Context, req UpdateWebhookRequest) (*WebhookUpdateResponse, error) {
-	resp := &WebhookUpdateResponse{}
-	_, err := c.doPut(ctx, "/webhooks", req, resp)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-// DeleteWebhook deletes a webhook.
-func (c *Client) DeleteWebhook(ctx context.Context, req DeleteWebhookRequest) (*WebhookDeleteResponse, error) {
-	resp := &WebhookDeleteResponse{}
-	_, err := c.doDeleteJSON(ctx, "/webhooks", req, resp)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-// WebhookDeliveries retrieves the delivery history for webhooks on the account.
-// Filter to a specific webhook with WebhookDeliveriesOptions.WebhookID.
-// This call does not consume a request credit.
-func (c *Client) WebhookDeliveries(ctx context.Context, opts *WebhookDeliveriesOptions) (*WebhookDeliveriesResponse, error) {
-	params := url.Values{}
-	if opts != nil {
-		if opts.WebhookID != nil {
-			params.Set("webhook_id", *opts.WebhookID)
-		}
-		if opts.Limit != nil {
-			params.Set("limit", strconv.Itoa(*opts.Limit))
-		}
-	}
-
-	resp := &WebhookDeliveriesResponse{}
-	rateLimits, err := c.doGet(ctx, "/webhooks/deliveries", params, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -487,40 +362,6 @@ func (c *Client) doPost(ctx context.Context, path string, body interface{}, dst 
 	return c.do(req, dst)
 }
 
-// doPut performs an authenticated PUT request with a JSON body and decodes the response.
-func (c *Client) doPut(ctx context.Context, path string, body interface{}, dst interface{}) (RateLimits, error) {
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerdb: encoding request body: %w", err)
-	}
-
-	u := c.BaseURL + path
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewReader(jsonBody))
-	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerdb: creating request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	return c.do(req, dst)
-}
-
-// doDeleteJSON performs an authenticated DELETE request with a JSON body and decodes the response.
-func (c *Client) doDeleteJSON(ctx context.Context, path string, body interface{}, dst interface{}) (RateLimits, error) {
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerdb: encoding request body: %w", err)
-	}
-
-	u := c.BaseURL + path
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, bytes.NewReader(jsonBody))
-	if err != nil {
-		return RateLimits{}, fmt.Errorf("tickerdb: creating request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	return c.do(req, dst)
-}
-
 // do executes an HTTP request, checks for errors, parses rate limits, and decodes the response.
 func (c *Client) do(req *http.Request, dst interface{}) (RateLimits, error) {
 	req.Header.Set("Authorization", "Bearer "+c.APIKey)
@@ -563,14 +404,3 @@ func (c *Client) do(req *http.Request, dst interface{}) (RateLimits, error) {
 	return rateLimits, nil
 }
 
-func normalizeTickers(tickers []string) []string {
-	normalized := make([]string, 0, len(tickers))
-	for _, ticker := range tickers {
-		trimmed := strings.TrimSpace(ticker)
-		if trimmed == "" {
-			continue
-		}
-		normalized = append(normalized, strings.ToUpper(trimmed))
-	}
-	return normalized
-}

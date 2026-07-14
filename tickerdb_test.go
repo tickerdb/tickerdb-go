@@ -243,9 +243,7 @@ func TestAccount(t *testing.T) {
 		"limits": map[string]any{
 			"monthly_requests": 5000,
 			"overage_enabled":  false,
-			"watchlist_limit":  100,
 			"search_results":   50,
-			"webhook_urls":     2,
 			"history_days":     365,
 		},
 		"usage": map[string]any{
@@ -272,9 +270,6 @@ func TestAccount(t *testing.T) {
 	}
 	if resp.Limits.HistoryDays != 365 {
 		t.Errorf("Limits.HistoryDays = %d, want 365", resp.Limits.HistoryDays)
-	}
-	if resp.Limits.WebhookURLs != 2 {
-		t.Errorf("Limits.WebhookURLs = %d, want 2", resp.Limits.WebhookURLs)
 	}
 	if resp.Usage.MonthlyRequestsUsed != 42 {
 		t.Errorf("Usage.MonthlyRequestsUsed = %d, want 42", resp.Usage.MonthlyRequestsUsed)
@@ -448,69 +443,6 @@ func TestSearchBuilder_onDate(t *testing.T) {
 	}
 	if gotQuery.Get("date") != "2025-06-01" {
 		t.Errorf("date param = %q, want 2025-06-01", gotQuery.Get("date"))
-	}
-}
-
-// ─── Webhook deliveries ───────────────────────────────────────────────────────
-
-func TestWebhookDeliveries(t *testing.T) {
-	body := map[string]any{
-		"deliveries": []map[string]any{
-			{
-				"id":         "del-1",
-				"webhook_id": "wh-1",
-				"event_type": "watchlist.changes",
-				"timeframe":  "daily",
-				"run_date":   "2025-01-15",
-				"status":     "success",
-			},
-		},
-		"count": 1,
-		"limit": 50,
-	}
-	client := testServer(t, jsonHandler(200, body, nil))
-	resp, err := client.WebhookDeliveries(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.Count != 1 {
-		t.Errorf("Count = %d, want 1", resp.Count)
-	}
-	if len(resp.Deliveries) != 1 {
-		t.Fatalf("len(Deliveries) = %d, want 1", len(resp.Deliveries))
-	}
-	if resp.Deliveries[0].EventType != tickerdb.WebhookEventWatchlistChanges {
-		t.Errorf("EventType = %q, want %q", resp.Deliveries[0].EventType, tickerdb.WebhookEventWatchlistChanges)
-	}
-	if resp.Deliveries[0].Status != "success" {
-		t.Errorf("Status = %q, want success", resp.Deliveries[0].Status)
-	}
-}
-
-func TestWebhookDeliveries_filterByWebhookID(t *testing.T) {
-	var gotQuery url.Values
-	body := map[string]any{"deliveries": []any{}, "count": 0, "limit": 50}
-	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		gotQuery = r.URL.Query()
-		encodeJSON(w, body)
-	})
-	opts := &tickerdb.WebhookDeliveriesOptions{WebhookID: tickerdb.Ptr("wh-abc")}
-	if _, err := client.WebhookDeliveries(context.Background(), opts); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if gotQuery.Get("webhook_id") != "wh-abc" {
-		t.Errorf("webhook_id param = %q, want wh-abc", gotQuery.Get("webhook_id"))
-	}
-}
-
-// ─── Webhook event constants ──────────────────────────────────────────────────
-
-func TestWebhookEventConstants(t *testing.T) {
-	if tickerdb.WebhookEventWatchlistChanges != "watchlist.changes" {
-		t.Errorf("WebhookEventWatchlistChanges = %q, want watchlist.changes", tickerdb.WebhookEventWatchlistChanges)
-	}
-	if tickerdb.WebhookEventDataReady != "data.ready" {
-		t.Errorf("WebhookEventDataReady = %q, want data.ready", tickerdb.WebhookEventDataReady)
 	}
 }
 
