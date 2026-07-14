@@ -101,7 +101,7 @@ type SearchResponse struct {
 }
 
 // Field describes a single queryable snapshot field as returned by
-// GET /v1/schema/fields and embedded in GET /v1/screeners.
+// GET /v1/schema/fields.
 type Field struct {
 	// Name is the canonical flat snake_case column name (e.g. "momentum_rsi_zone").
 	Name string `json:"name"`
