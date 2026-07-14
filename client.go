@@ -16,8 +16,9 @@ import (
 )
 
 const (
+	Version        = "0.2.1"
 	defaultBaseURL = "https://api.tickerdb.com/v1"
-	userAgent      = "tickerdb-go"
+	userAgent      = "tickerdb-go/" + Version
 )
 
 // Client is the TickerDB client. Create one with NewClient.
