@@ -150,7 +150,7 @@ resp, err := client.Summary(ctx, "AAPL", &tickerdb.SummaryOptions{
 })
 ```
 
-Summary payloads are forward-compatible JSON. Current snapshots include top-level freshness like `as_of_date`, same-candle `ohlcv.open/high/low/close/volume`, categorical sections such as `trend`, `momentum`, and `volume`, semantic MA fields such as `trend.ma_slopes` (`ma_8` through `ma_200`), `trend.ma_compression_band`, and `trend.ma_crossover_event`, support/resistance prices, and tier-gated fundamentals/sector context when available.
+Summary payloads are forward-compatible JSON. Current snapshots include top-level freshness like `as_of_date`, same-candle `ohlcv.open/high/low/close/volume`, categorical sections such as `trend`, `momentum`, and `volume`, semantic MA fields such as `trend.ma_slopes` (`ma_8` through `ma_200`), `trend.ma_compression_band`, and `trend.ma_crossover_event`, support/resistance prices, and tier-gated fundamentals/sector context when available. Pro/Business stock summaries expose raw P/E as `fundamentals.pe_ratio`; it uses the latest ratio on or before the snapshot date (including weekly week-end dates), preserves negative values, and returns `null` when unavailable.
 
 Summary stays band-first by default, so sibling `_meta` / `status_meta` stability objects are omitted unless you opt in:
 
